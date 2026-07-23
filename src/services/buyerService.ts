@@ -1,0 +1,137 @@
+import { supabase } from '../lib/supabase';
+import type { Buyer, SubCompany } from '../types';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapSubCompany(sc: any): SubCompany {
+  return {
+    id: sc.id,
+    name: sc.name,
+    address: sc.address ?? undefined,
+    contactPerson: sc.contact_person ?? undefined,
+    phone: sc.phone ?? undefined,
+    email: sc.email ?? undefined,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapBuyer(row: any): Buyer {
+  return {
+    id: row.id,
+    code: row.code,
+    companyName: row.company_name,
+    address: row.address ?? undefined,
+    country: row.country ?? undefined,
+    contactPerson: row.contact_person ?? undefined,
+    phone: row.phone ?? undefined,
+    email: row.email ?? undefined,
+    paymentTerms: row.payment_terms ?? '',
+    portOfLoading: row.port_of_loading ?? undefined,
+    portOfDischarge: row.port_of_discharge ?? undefined,
+    incoterm: row.incoterm ?? undefined,
+    hasSubCompanies: row.has_sub_companies ?? false,
+    subCompanies: (row.sub_companies ?? []).map(mapSubCompany),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export const buyerService = {
+  async getAll(): Promise<Buyer[]> {
+    const { data, error } = await supabase
+      .from('buyers')
+      .select('*, sub_companies(*)')
+      .order('code');
+    if (error) throw error;
+    return (data ?? []).map(mapBuyer);
+  },
+
+  async getById(id: string): Promise<Buyer | null> {
+    const { data, error } = await supabase
+      .from('buyers')
+      .select('*, sub_companies(*)')
+      .eq('id', id)
+      .single();
+    if (error) return null;
+    return mapBuyer(data);
+  },
+
+  async create(buyer: Omit<Buyer, 'id' | 'createdAt' | 'updatedAt'>): Promise<Buyer> {
+    const { data, error } = await supabase
+      .from('buyers')
+      .insert({
+        code: buyer.code,
+        company_name: buyer.companyName,
+        address: buyer.address ?? null,
+        country: buyer.country ?? null,
+        contact_person: buyer.contactPerson ?? null,
+        phone: buyer.phone ?? null,
+        email: buyer.email ?? null,
+        payment_terms: buyer.paymentTerms,
+        port_of_loading: buyer.portOfLoading ?? null,
+        port_of_discharge: buyer.portOfDischarge ?? null,
+        incoterm: buyer.incoterm ?? null,
+        has_sub_companies: buyer.hasSubCompanies,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+
+    if (buyer.hasSubCompanies && buyer.subCompanies.length > 0) {
+      const { error: scErr } = await supabase.from('sub_companies').insert(
+        buyer.subCompanies.map((sc) => ({
+          buyer_id: data.id,
+          name: sc.name,
+          address: sc.address ?? null,
+          contact_person: sc.contactPerson ?? null,
+          phone: sc.phone ?? null,
+          email: sc.email ?? null,
+        }))
+      );
+      if (scErr) throw scErr;
+    }
+
+    const result = await this.getById(data.id);
+    return result!;
+  },
+
+  async update(id: string, buyer: Omit<Buyer, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
+    const { error } = await supabase
+      .from('buyers')
+      .update({
+        company_name: buyer.companyName,
+        address: buyer.address ?? null,
+        country: buyer.country ?? null,
+        contact_person: buyer.contactPerson ?? null,
+        phone: buyer.phone ?? null,
+        email: buyer.email ?? null,
+        payment_terms: buyer.paymentTerms,
+        port_of_loading: buyer.portOfLoading ?? null,
+        port_of_discharge: buyer.portOfDischarge ?? null,
+        incoterm: buyer.incoterm ?? null,
+        has_sub_companies: buyer.hasSubCompanies,
+      })
+      .eq('id', id);
+    if (error) throw error;
+
+    await supabase.from('sub_companies').delete().eq('buyer_id', id);
+
+    if (buyer.hasSubCompanies && buyer.subCompanies.length > 0) {
+      const { error: scErr } = await supabase.from('sub_companies').insert(
+        buyer.subCompanies.map((sc) => ({
+          buyer_id: id,
+          name: sc.name,
+          address: sc.address ?? null,
+          contact_person: sc.contactPerson ?? null,
+          phone: sc.phone ?? null,
+          email: sc.email ?? null,
+        }))
+      );
+      if (scErr) throw scErr;
+    }
+  },
+
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase.from('buyers').delete().eq('id', id);
+    if (error) throw error;
+  },
+};

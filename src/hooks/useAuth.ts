@@ -64,5 +64,13 @@ export function useAuth() {
     setUser(null);
   };
 
-  return { user, loading, login, logout, isAuthenticated: !!user };
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<string | null> => {
+    if (!user) return 'Not signed in';
+    const { error: verifyError } = await supabase.auth.signInWithPassword({ email: user.email, password: currentPassword });
+    if (verifyError) return 'Current password is incorrect';
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    return error ? error.message : null;
+  };
+
+  return { user, loading, login, logout, changePassword, isAuthenticated: !!user };
 }

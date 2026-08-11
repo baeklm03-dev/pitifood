@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ChevronDown, LogOut, User, Settings, Menu, X } from 'lucide-react';
+import { ChevronDown, LogOut, User, Settings, Menu, X, KeyRound } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useResponsive } from '../../hooks/useMediaQuery';
+import { ChangePasswordModal } from '../UI/ChangePasswordModal';
 
 export function Navbar() {
   const { user, logout } = useAuth();
@@ -14,6 +15,7 @@ export function Navbar() {
   const [poOpen, setPoOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [changePwOpen, setChangePwOpen] = useState(false);
   const masterRef = useRef<HTMLDivElement>(null);
   const contractRef = useRef<HTMLDivElement>(null);
   const poRef = useRef<HTMLDivElement>(null);
@@ -258,6 +260,13 @@ export function Navbar() {
                     </div>
                   </div>
                   <button
+                    onClick={() => { setUserOpen(false); setChangePwOpen(true); }}
+                    onMouseEnter={onItemHover} onMouseLeave={onItemLeave}
+                    style={{ ...dropdownItem, display: 'flex', alignItems: 'center', gap: '8px' }}
+                  >
+                    <KeyRound size={14} /> Change Password
+                  </button>
+                  <button
                     onClick={handleLogout}
                     onMouseEnter={onItemHover} onMouseLeave={onItemLeave}
                     style={{ ...dropdownItem, display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--danger)' }}
@@ -324,6 +333,9 @@ export function Navbar() {
                   {user?.role === 'super_admin' ? 'Super Admin' : 'Admin'}
                 </div>
               </div>
+              <button onClick={() => { closeMobile(); setChangePwOpen(true); }} style={mobileItem}>
+                <KeyRound size={16} /> Change Password
+              </button>
               <button onClick={() => { closeMobile(); handleLogout(); }} style={{ ...mobileItem, color: 'var(--danger)' }}>
                 <LogOut size={16} /> Logout
               </button>
@@ -331,6 +343,8 @@ export function Navbar() {
           </div>
         </>
       )}
+
+      <ChangePasswordModal open={changePwOpen} onClose={() => setChangePwOpen(false)} />
     </>
   );
 }

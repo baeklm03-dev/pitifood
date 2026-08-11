@@ -76,8 +76,18 @@ export function BrandView() {
         <Row label="Notes" value={brand.notes} />
         <div style={{ padding: '10px 0', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '140px 1fr', gap: isMobile ? '2px' : '12px' }}>
           <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Created</span>
-          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{new Date(brand.createdAt).toLocaleDateString()}</span>
+          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+            {new Date(brand.createdAt).toLocaleDateString()}{brand.createdByName ? ` by ${brand.createdByName}` : ''}
+          </span>
         </div>
+        {brand.updatedByName && brand.updatedByName !== brand.createdByName && (
+          <div style={{ padding: '10px 0', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '140px 1fr', gap: isMobile ? '2px' : '12px' }}>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Last Edited</span>
+            <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              {new Date(brand.updatedAt).toLocaleDateString()} by {brand.updatedByName}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

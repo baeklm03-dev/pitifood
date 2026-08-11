@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, Trash2, ChevronLeft, Save } from 'lucide-react';
 import { buyerService } from '../../services/buyerService';
+import { useAuth } from '../../hooks/useAuth';
 import type { Buyer, SubCompany } from '../../types';
 import { Button } from '../../components/UI/Button';
 import { Input, Textarea, Select } from '../../components/UI/Input';
@@ -29,6 +30,7 @@ export function BuyerForm() {
   const navigate = useNavigate();
   const isEdit = Boolean(id) && id !== 'new';
   const { isMobile } = useResponsive();
+  const { user } = useAuth();
 
   const [form, setForm] = useState<BuyerFormData>({
     code: '', companyName: '', country: '', address: '',
@@ -81,10 +83,11 @@ export function BuyerForm() {
     setFormError(null);
     try {
       const data: BuyerFormData = { ...form, code: form.code.toUpperCase() };
+      const actor = user ? { id: user.id, name: user.fullName } : undefined;
       if (isEdit && id) {
-        await buyerService.update(id, data);
+        await buyerService.update(id, data, actor);
       } else {
-        await buyerService.create(data);
+        await buyerService.create(data, actor);
       }
       navigate('/buyers');
     } catch (err) {

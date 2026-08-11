@@ -46,6 +46,10 @@ export interface Buyer {
   documentRequirementRemark?: string;
   hasSubCompanies: boolean;
   subCompanies: SubCompany[];
+  createdById?: string;
+  createdByName?: string;
+  updatedById?: string;
+  updatedByName?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -73,6 +77,10 @@ export interface Brand {
   defaultPacking?: string;  // legacy — kept for backward-compat
   defaultOrigin?: string;
   notes?: string;
+  createdById?: string;
+  createdByName?: string;
+  updatedById?: string;
+  updatedByName?: string;
   createdAt: string;
   updatedAt: string;
 }

@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Buyer, SubCompany } from '../types';
+import type { ContractActor } from './contractService';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapSubCompany(sc: any): SubCompany {
@@ -34,12 +35,16 @@ function mapBuyer(row: any): Buyer {
     documentRequirementRemark: row.document_requirement_remark ?? undefined,
     hasSubCompanies: row.has_sub_companies ?? false,
     subCompanies: (row.sub_companies ?? []).map(mapSubCompany),
+    createdById: row.created_by_id ?? undefined,
+    createdByName: row.created_by_name ?? undefined,
+    updatedById: row.updated_by_id ?? undefined,
+    updatedByName: row.updated_by_name ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
-function buyerBody(buyer: Omit<Buyer, 'id' | 'createdAt' | 'updatedAt' | 'subCompanies'>) {
+function buyerBody(buyer: Omit<Buyer, 'id' | 'createdAt' | 'updatedAt' | 'subCompanies' | 'createdById' | 'createdByName' | 'updatedById' | 'updatedByName'>) {
   return {
     code: buyer.code,
     company_name: buyer.companyName,
@@ -80,10 +85,16 @@ export const buyerService = {
     return mapBuyer(data);
   },
 
-  async create(buyer: Omit<Buyer, 'id' | 'createdAt' | 'updatedAt'>): Promise<Buyer> {
+  async create(buyer: Omit<Buyer, 'id' | 'createdAt' | 'updatedAt'>, actor?: ContractActor): Promise<Buyer> {
     const { data, error } = await supabase
       .from('buyers')
-      .insert(buyerBody(buyer))
+      .insert({
+        ...buyerBody(buyer),
+        created_by_id: actor?.id ?? null,
+        created_by_name: actor?.name ?? null,
+        updated_by_id: actor?.id ?? null,
+        updated_by_name: actor?.name ?? null,
+      })
       .select()
       .single();
     if (error) throw error;
@@ -106,10 +117,14 @@ export const buyerService = {
     return result!;
   },
 
-  async update(id: string, buyer: Omit<Buyer, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
+  async update(id: string, buyer: Omit<Buyer, 'id' | 'createdAt' | 'updatedAt'>, actor?: ContractActor): Promise<void> {
     const { error } = await supabase
       .from('buyers')
-      .update(buyerBody(buyer))
+      .update({
+        ...buyerBody(buyer),
+        updated_by_id: actor?.id ?? null,
+        updated_by_name: actor?.name ?? null,
+      })
       .eq('id', id);
     if (error) throw error;
 

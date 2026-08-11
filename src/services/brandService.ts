@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import type { Brand, RequirementRow } from '../types';
+import type { ContractActor } from './contractService';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapBrand(row: any): Brand {
@@ -17,12 +18,16 @@ function mapBrand(row: any): Brand {
     defaultPacking: row.default_packing ?? undefined,
     defaultOrigin: row.default_origin ?? undefined,
     notes: row.notes ?? undefined,
+    createdById: row.created_by_id ?? undefined,
+    createdByName: row.created_by_name ?? undefined,
+    updatedById: row.updated_by_id ?? undefined,
+    updatedByName: row.updated_by_name ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
-function brandBody(brand: Omit<Brand, 'id' | 'createdAt' | 'updatedAt'>) {
+function brandBody(brand: Omit<Brand, 'id' | 'createdAt' | 'updatedAt' | 'createdById' | 'createdByName' | 'updatedById' | 'updatedByName'>) {
   return {
     brand_name: brand.brandName,
     buyer_id: brand.buyerId,
@@ -69,20 +74,30 @@ export const brandService = {
     return (data ?? []).map(mapBrand);
   },
 
-  async create(brand: Omit<Brand, 'id' | 'createdAt' | 'updatedAt'>): Promise<Brand> {
+  async create(brand: Omit<Brand, 'id' | 'createdAt' | 'updatedAt'>, actor?: ContractActor): Promise<Brand> {
     const { data, error } = await supabase
       .from('brands')
-      .insert(brandBody(brand))
+      .insert({
+        ...brandBody(brand),
+        created_by_id: actor?.id ?? null,
+        created_by_name: actor?.name ?? null,
+        updated_by_id: actor?.id ?? null,
+        updated_by_name: actor?.name ?? null,
+      })
       .select()
       .single();
     if (error) throw error;
     return mapBrand(data);
   },
 
-  async update(id: string, brand: Omit<Brand, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
+  async update(id: string, brand: Omit<Brand, 'id' | 'createdAt' | 'updatedAt'>, actor?: ContractActor): Promise<void> {
     const { error } = await supabase
       .from('brands')
-      .update(brandBody(brand))
+      .update({
+        ...brandBody(brand),
+        updated_by_id: actor?.id ?? null,
+        updated_by_name: actor?.name ?? null,
+      })
       .eq('id', id);
     if (error) throw error;
   },

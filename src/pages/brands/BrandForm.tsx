@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, Save, Plus, Trash2 } from 'lucide-react';
 import { brandService } from '../../services/brandService';
 import { buyerService } from '../../services/buyerService';
+import { useAuth } from '../../hooks/useAuth';
 import type { Brand, Buyer } from '../../types';
 import { PRODUCT_TYPES } from '../../utils/productTypes';
 import { Button } from '../../components/UI/Button';
@@ -25,6 +26,7 @@ export function BrandForm() {
   const isEdit = Boolean(id) && id !== 'new';
 
   const { isMobile } = useResponsive();
+  const { user } = useAuth();
   const [buyers, setBuyers] = useState<Buyer[]>([]);
   const [form, setForm] = useState<BrandData>({
     brandName: '', buyerId: '', buyerCode: '',
@@ -114,10 +116,11 @@ export function BrandForm() {
         packingDetailRemark: form.packingDetailRemark || undefined,
         notes: form.notes || undefined,
       };
+      const actor = user ? { id: user.id, name: user.fullName } : undefined;
       if (isEdit && id) {
-        await brandService.update(id, data);
+        await brandService.update(id, data, actor);
       } else {
-        await brandService.create(data);
+        await brandService.create(data, actor);
       }
       navigate('/brands');
     } catch (err) {

@@ -85,6 +85,27 @@ export function BuyerView() {
         <InfoRow icon={<CreditCard size={15} />} label="Payment Terms" value={buyer.paymentTerms} />
       </div>
 
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '24px', marginBottom: '16px', boxShadow: 'var(--shadow-sm)' }}>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '8px 0', borderBottom: buyer.updatedByName && buyer.updatedByName !== buyer.createdByName ? '1px solid var(--border)' : 'none' }}>
+          <div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Created</div>
+            <div style={{ fontSize: '13px', marginTop: '2px', color: 'var(--text-muted)' }}>
+              {new Date(buyer.createdAt).toLocaleDateString()}{buyer.createdByName ? ` by ${buyer.createdByName}` : ''}
+            </div>
+          </div>
+        </div>
+        {buyer.updatedByName && buyer.updatedByName !== buyer.createdByName && (
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '8px 0' }}>
+            <div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Last Edited</div>
+              <div style={{ fontSize: '13px', marginTop: '2px', color: 'var(--text-muted)' }}>
+                {new Date(buyer.updatedAt).toLocaleDateString()} by {buyer.updatedByName}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {buyer.hasSubCompanies && buyer.subCompanies.length > 0 && (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '24px', marginBottom: '16px', boxShadow: 'var(--shadow-sm)' }}>
           <h2 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '16px', color: 'var(--primary)' }}>

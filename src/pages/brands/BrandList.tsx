@@ -95,13 +95,14 @@ export function BrandList() {
               <th style={thStyle}>Linked Buyer</th>
               <th style={thStyle}>Product Types</th>
               <th style={thStyle}>Packing Sizes</th>
+              <th style={thStyle}>By</th>
               <th style={{ ...thStyle, textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} style={{ ...tdStyle, textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                <td colSpan={6} style={{ ...tdStyle, textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                   <Tag size={32} style={{ opacity: 0.3, display: 'block', margin: '0 auto 8px' }} />
                   {search || filterBuyer ? 'No brands match your filters.' : 'No brands yet. Add one to get started.'}
                 </td>
@@ -131,6 +132,16 @@ export function BrandList() {
                     ) : <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>ทุกประเภท</span>}
                   </td>
                   <td style={tdStyle}>{brand.packingSizes?.length ? brand.packingSizes.join(', ') : (brand.defaultPacking || '—')}</td>
+                  <td style={{ ...tdStyle, fontSize: '11px', color: 'var(--text-muted)', maxWidth: '130px' }}>
+                    {brand.createdByName ? (
+                      <div>
+                        <div title={`Created by ${brand.createdByName}`}>{brand.createdByName}</div>
+                        {brand.updatedByName && brand.updatedByName !== brand.createdByName && (
+                          <div style={{ fontSize: '10px' }} title={`Updated by ${brand.updatedByName}`}>✎ {brand.updatedByName}</div>
+                        )}
+                      </div>
+                    ) : '—'}
+                  </td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                       <Link to={`/brands/${brand.id}`}>

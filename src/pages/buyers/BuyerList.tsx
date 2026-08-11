@@ -121,13 +121,14 @@ export function BuyerList() {
               <th style={thStyle}>Country</th>
               <th style={thStyle}>Sub-Companies</th>
               <th style={thStyle}>Payment Terms</th>
+              <th style={thStyle}>By</th>
               <th style={{ ...thStyle, textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} style={{ ...tdStyle, textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                <td colSpan={7} style={{ ...tdStyle, textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                   <Building2 size={32} style={{ opacity: 0.3, display: 'block', margin: '0 auto 8px' }} />
                   {search ? 'No buyers match your search.' : 'No buyers yet. Add one to get started.'}
                 </td>
@@ -156,6 +157,16 @@ export function BuyerList() {
                     <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
                       {buyer.paymentTerms || '—'}
                     </span>
+                  </td>
+                  <td style={{ ...tdStyle, fontSize: '11px', color: 'var(--text-muted)', maxWidth: '130px' }}>
+                    {buyer.createdByName ? (
+                      <div>
+                        <div title={`Created by ${buyer.createdByName}`}>{buyer.createdByName}</div>
+                        {buyer.updatedByName && buyer.updatedByName !== buyer.createdByName && (
+                          <div style={{ fontSize: '10px' }} title={`Updated by ${buyer.updatedByName}`}>✎ {buyer.updatedByName}</div>
+                        )}
+                      </div>
+                    ) : '—'}
                   </td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>

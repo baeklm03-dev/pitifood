@@ -5,8 +5,11 @@ import { buyerService } from '../../services/buyerService';
 import type { Buyer, SubCompany } from '../../types';
 import { Button } from '../../components/UI/Button';
 import { Input, Textarea, Select } from '../../components/UI/Input';
+import { RequirementRows } from '../../components/UI/RequirementRows';
 import { ConfirmModal } from '../../components/UI/Modal';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
+import { useResponsive } from '../../hooks/useMediaQuery';
+import { LOADING_REQUIREMENT_PRESETS, DOCUMENT_REQUIREMENT_PRESETS, defaultRowsFrom } from '../../utils/requirementPresets';
 
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -25,11 +28,14 @@ export function BuyerForm() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
   const isEdit = Boolean(id) && id !== 'new';
+  const { isMobile } = useResponsive();
 
   const [form, setForm] = useState<BuyerFormData>({
     code: '', companyName: '', country: '', address: '',
     contactPerson: '', phone: '', email: '',
     paymentTerms: '', portOfLoading: '', portOfDischarge: '', incoterm: '',
+    loadingRequirementRows: defaultRowsFrom(LOADING_REQUIREMENT_PRESETS), loadingRequirementRemark: '',
+    documentRequirementRows: defaultRowsFrom(DOCUMENT_REQUIREMENT_PRESETS), documentRequirementRemark: '',
     hasSubCompanies: false, subCompanies: [],
   });
   const [loadingPage, setLoadingPage] = useState(isEdit);
@@ -43,7 +49,11 @@ export function BuyerForm() {
       buyerService.getById(id).then((existing) => {
         if (!existing) { navigate('/buyers'); return; }
         const { id: _id, createdAt: _c, updatedAt: _u, ...rest } = existing;
-        setForm(rest);
+        setForm({
+          ...rest,
+          loadingRequirementRows: rest.loadingRequirementRows?.length ? rest.loadingRequirementRows : defaultRowsFrom(LOADING_REQUIREMENT_PRESETS),
+          documentRequirementRows: rest.documentRequirementRows?.length ? rest.documentRequirementRows : defaultRowsFrom(DOCUMENT_REQUIREMENT_PRESETS),
+        });
         setLoadingPage(false);
       });
     }
@@ -112,12 +122,12 @@ export function BuyerForm() {
     textTransform: 'uppercase', letterSpacing: '0.06em',
     marginBottom: '16px', paddingBottom: '8px', borderBottom: '1px solid var(--border)',
   };
-  const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' };
+  const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' };
 
   if (loadingPage) return <LoadingSpinner message="Loading buyer..." fullPage={false} />;
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: '800px' }}>
+    <div style={{ padding: isMobile ? '16px' : '28px 32px', maxWidth: '800px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
         <button onClick={() => navigate('/buyers')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>
           <ChevronLeft size={20} />
@@ -159,21 +169,6 @@ export function BuyerForm() {
         </div>
 
         <div style={cardStyle}>
-          <p style={sectionTitle}>Shipping &amp; Payment Terms</p>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '-8px', marginBottom: '16px' }}>
-            These are fixed per buyer — new contracts auto-fill from here and can't be edited per contract.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={grid2}>
-              <Input label="Shipped From (Port of Loading)" value={form.portOfLoading ?? ''} onChange={(e) => setField('portOfLoading', e.target.value)} placeholder="e.g. Songkhla, Thailand" />
-              <Input label="Destination (Port of Discharge)" value={form.portOfDischarge ?? ''} onChange={(e) => setField('portOfDischarge', e.target.value)} placeholder="e.g. Kaohsiung, Taiwan" />
-            </div>
-            <Select label="Incoterm" value={form.incoterm ?? ''} onChange={(e) => setField('incoterm', e.target.value)} options={INCOTERM_OPTIONS} placeholder="— Select —" />
-            <Textarea label="Payment Terms" value={form.paymentTerms} onChange={(e) => setField('paymentTerms', e.target.value)} placeholder={'e.g. T/T 20% advance payment against Sales Contract\nThe balance 80% by DP'} style={{ minHeight: '70px' }} />
-          </div>
-        </div>
-
-        <div style={cardStyle}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', paddingBottom: '8px', borderBottom: '1px solid var(--border)' }}>
             <p style={{ ...sectionTitle, marginBottom: 0, paddingBottom: 0, borderBottom: 'none' }}>Sub-Companies</p>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 500 }}>
@@ -210,6 +205,53 @@ export function BuyerForm() {
               </Button>
             </div>
           )}
+        </div>
+
+        <div style={cardStyle}>
+          <p style={sectionTitle}>Shipping &amp; Payment Terms</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '-8px', marginBottom: '16px' }}>
+            These are fixed per buyer — new contracts auto-fill from here and can't be edited per contract.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={grid2}>
+              <Input label="Shipped From (Port of Loading)" value={form.portOfLoading ?? ''} onChange={(e) => setField('portOfLoading', e.target.value)} placeholder="e.g. Songkhla, Thailand" />
+              <Input label="Destination (Port of Discharge)" value={form.portOfDischarge ?? ''} onChange={(e) => setField('portOfDischarge', e.target.value)} placeholder="e.g. Kaohsiung, Taiwan" />
+            </div>
+            <Select label="Incoterm" value={form.incoterm ?? ''} onChange={(e) => setField('incoterm', e.target.value)} options={INCOTERM_OPTIONS} placeholder="— Select —" />
+            <Textarea label="Payment Terms" value={form.paymentTerms} onChange={(e) => setField('paymentTerms', e.target.value)} placeholder={'e.g. T/T 20% advance payment against Sales Contract\nThe balance 80% by DP'} style={{ minHeight: '70px' }} />
+          </div>
+        </div>
+
+        <div style={cardStyle}>
+          <p style={sectionTitle}>PO — ข้อกำหนดการโหลด (ข้อ 3)</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '-8px', marginBottom: '16px' }}>
+            จะถูกดึงไปเติมในใบ Production Order ของลูกค้ารายนี้ (แก้ต่อในแต่ละ PO ได้)
+          </p>
+          <RequirementRows
+            rows={form.loadingRequirementRows}
+            onChange={(rows) => setField('loadingRequirementRows', rows)}
+            presetLabels={LOADING_REQUIREMENT_PRESETS}
+            listId="loading-requirement-presets"
+          />
+          <div style={{ marginTop: '14px' }}>
+            <Input label="Remark" value={form.loadingRequirementRemark ?? ''} onChange={(e) => setField('loadingRequirementRemark', e.target.value)} placeholder="เช่น สินค้าไซด์ใหญ่วางด้านล่างเพื่อป้องกันปัญหากล่องยุบ" />
+          </div>
+        </div>
+
+        <div style={cardStyle}>
+          <p style={sectionTitle}>PO — การจัดเตรียมเอกสารและภาพถ่าย (ข้อ 4)</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '-8px', marginBottom: '16px' }}>
+            จะถูกดึงไปเติมในใบ Production Order ของลูกค้ารายนี้ (แก้ต่อในแต่ละ PO ได้)
+          </p>
+          <RequirementRows
+            rows={form.documentRequirementRows}
+            onChange={(rows) => setField('documentRequirementRows', rows)}
+            presetLabels={DOCUMENT_REQUIREMENT_PRESETS}
+            listId="document-requirement-presets"
+          />
+          <div style={{ marginTop: '14px' }}>
+            <Input label="Remark" value={form.documentRequirementRemark ?? ''} onChange={(e) => setField('documentRequirementRemark', e.target.value)} placeholder="เช่น ..." />
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>

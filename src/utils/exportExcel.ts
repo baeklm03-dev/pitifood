@@ -32,7 +32,6 @@ export function exportToExcel(contracts: SaleContract[]) {
       'Sub-company': c.subCompanyName ?? '',
       'Offer Date': fmtDate(c.offerDate),
       'Shipment': formatShipment(c.shipmentPeriod, c.shipmentMonth, c.shipmentYear),
-      'ETA': fmtDate(c.eta),
       'Port of Loading': c.portOfLoading ?? '',
       'Port of Discharge': c.portOfDischarge ?? '',
       'Incoterm': c.incoterm ?? '',
@@ -43,6 +42,8 @@ export function exportToExcel(contracts: SaleContract[]) {
       'Total Amount (USD)': totalAmt,
       'Signed File': c.signedFileName ?? '',
       'Signed Date': fmtDate(c.signedAt),
+      'Created By': c.createdByName ?? '',
+      'Updated By': c.updatedByName ?? '',
     };
   });
   const ws1 = XLSX.utils.json_to_sheet(sheet1Data);

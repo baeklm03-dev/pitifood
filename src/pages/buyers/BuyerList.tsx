@@ -1,25 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Edit2, Eye, Building2 } from 'lucide-react';
+import { Plus, Search, Edit2, Eye, Building2, Trash2 } from 'lucide-react';
 import { buyerService } from '../../services/buyerService';
 import type { Buyer } from '../../types';
 import { Button } from '../../components/UI/Button';
 import { Badge } from '../../components/UI/Badge';
+import { ConfirmModal } from '../../components/UI/Modal';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
+import { useResponsive } from '../../hooks/useMediaQuery';
 
 export function BuyerList() {
   const navigate = useNavigate();
+  const { isMobile } = useResponsive();
   const [buyers, setBuyers] = useState<Buyer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<Buyer | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     buyerService.getAll()
       .then(setBuyers)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteError(null);
+    try {
+      await buyerService.delete(deleteTarget.id);
+      load();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Failed to delete buyer — it may still be referenced by a brand or contract.');
+    }
+  };
 
   const filtered = buyers.filter(
     (b) =>
@@ -53,8 +70,8 @@ export function BuyerList() {
   if (error) return <div style={{ padding: '40px', color: 'var(--danger)' }}>Error: {error}</div>;
 
   return (
-    <div style={{ padding: '28px 32px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+    <div style={{ padding: isMobile ? '16px' : '28px 32px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--primary)' }}>Buyers</h1>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>{buyers.length} buyer{buyers.length !== 1 ? 's' : ''} total</p>
@@ -63,6 +80,12 @@ export function BuyerList() {
           <Plus size={14} /> Add Buyer
         </Button>
       </div>
+
+      {deleteError && (
+        <div style={{ background: '#FDEDEC', border: '1px solid #F5C6CB', borderRadius: 'var(--radius)', padding: '12px 16px', marginBottom: '16px', fontSize: '13px', color: 'var(--danger)' }}>
+          {deleteError}
+        </div>
+      )}
 
       <div style={{ marginBottom: '16px', position: 'relative', maxWidth: '340px' }}>
         <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
@@ -89,7 +112,8 @@ export function BuyerList() {
         overflow: 'hidden',
         boxShadow: 'var(--shadow-sm)',
       }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '760px' }}>
           <thead>
             <tr>
               <th style={thStyle}>Code</th>
@@ -141,6 +165,7 @@ export function BuyerList() {
                       <Link to={`/buyers/${buyer.id}/edit`}>
                         <Button variant="secondary" size="sm"><Edit2 size={13} /> Edit</Button>
                       </Link>
+                      <Button variant="ghost" size="sm" onClick={() => { setDeleteError(null); setDeleteTarget(buyer); }}><Trash2 size={13} /></Button>
                     </div>
                   </td>
                 </tr>
@@ -148,7 +173,17 @@ export function BuyerList() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Delete Buyer"
+        message={`ลบ ${deleteTarget?.companyName} (${deleteTarget?.code})? การกระทำนี้ย้อนกลับไม่ได้ — ถ้าลูกค้ารายนี้ถูกใช้ใน contract หรือ brand อยู่แล้ว ระบบจะลบไม่สำเร็จ`}
+        confirmLabel="Delete"
+      />
     </div>
   );
 }

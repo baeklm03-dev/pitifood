@@ -28,10 +28,35 @@ function mapBuyer(row: any): Buyer {
     portOfLoading: row.port_of_loading ?? undefined,
     portOfDischarge: row.port_of_discharge ?? undefined,
     incoterm: row.incoterm ?? undefined,
+    loadingRequirementRows: row.loading_requirement_rows ?? [],
+    loadingRequirementRemark: row.loading_requirement_remark ?? undefined,
+    documentRequirementRows: row.document_requirement_rows ?? [],
+    documentRequirementRemark: row.document_requirement_remark ?? undefined,
     hasSubCompanies: row.has_sub_companies ?? false,
     subCompanies: (row.sub_companies ?? []).map(mapSubCompany),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+function buyerBody(buyer: Omit<Buyer, 'id' | 'createdAt' | 'updatedAt' | 'subCompanies'>) {
+  return {
+    code: buyer.code,
+    company_name: buyer.companyName,
+    address: buyer.address ?? null,
+    country: buyer.country ?? null,
+    contact_person: buyer.contactPerson ?? null,
+    phone: buyer.phone ?? null,
+    email: buyer.email ?? null,
+    payment_terms: buyer.paymentTerms,
+    port_of_loading: buyer.portOfLoading ?? null,
+    port_of_discharge: buyer.portOfDischarge ?? null,
+    incoterm: buyer.incoterm ?? null,
+    loading_requirement_rows: buyer.loadingRequirementRows ?? [],
+    loading_requirement_remark: buyer.loadingRequirementRemark ?? null,
+    document_requirement_rows: buyer.documentRequirementRows ?? [],
+    document_requirement_remark: buyer.documentRequirementRemark ?? null,
+    has_sub_companies: buyer.hasSubCompanies,
   };
 }
 
@@ -58,20 +83,7 @@ export const buyerService = {
   async create(buyer: Omit<Buyer, 'id' | 'createdAt' | 'updatedAt'>): Promise<Buyer> {
     const { data, error } = await supabase
       .from('buyers')
-      .insert({
-        code: buyer.code,
-        company_name: buyer.companyName,
-        address: buyer.address ?? null,
-        country: buyer.country ?? null,
-        contact_person: buyer.contactPerson ?? null,
-        phone: buyer.phone ?? null,
-        email: buyer.email ?? null,
-        payment_terms: buyer.paymentTerms,
-        port_of_loading: buyer.portOfLoading ?? null,
-        port_of_discharge: buyer.portOfDischarge ?? null,
-        incoterm: buyer.incoterm ?? null,
-        has_sub_companies: buyer.hasSubCompanies,
-      })
+      .insert(buyerBody(buyer))
       .select()
       .single();
     if (error) throw error;
@@ -97,19 +109,7 @@ export const buyerService = {
   async update(id: string, buyer: Omit<Buyer, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
     const { error } = await supabase
       .from('buyers')
-      .update({
-        company_name: buyer.companyName,
-        address: buyer.address ?? null,
-        country: buyer.country ?? null,
-        contact_person: buyer.contactPerson ?? null,
-        phone: buyer.phone ?? null,
-        email: buyer.email ?? null,
-        payment_terms: buyer.paymentTerms,
-        port_of_loading: buyer.portOfLoading ?? null,
-        port_of_discharge: buyer.portOfDischarge ?? null,
-        incoterm: buyer.incoterm ?? null,
-        has_sub_companies: buyer.hasSubCompanies,
-      })
+      .update(buyerBody(buyer))
       .eq('id', id);
     if (error) throw error;
 

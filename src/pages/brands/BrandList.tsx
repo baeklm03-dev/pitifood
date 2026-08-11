@@ -6,9 +6,11 @@ import { buyerService } from '../../services/buyerService';
 import type { Brand, Buyer } from '../../types';
 import { Button } from '../../components/UI/Button';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
+import { useResponsive } from '../../hooks/useMediaQuery';
 
 export function BrandList() {
   const navigate = useNavigate();
+  const { isMobile } = useResponsive();
   const [brands, setBrands] = useState<Brand[]>([]);
   const [buyers, setBuyers] = useState<Buyer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,8 +53,8 @@ export function BrandList() {
   if (error) return <div style={{ padding: '40px', color: 'var(--danger)' }}>Error: {error}</div>;
 
   return (
-    <div style={{ padding: '28px 32px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
+    <div style={{ padding: isMobile ? '16px' : '28px 32px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--primary)' }}>Brands</h1>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>{brands.length} brand{brands.length !== 1 ? 's' : ''} total</p>
@@ -85,13 +87,14 @@ export function BrandList() {
       </div>
 
       <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius)', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '720px' }}>
           <thead>
             <tr>
               <th style={thStyle}>Brand Name</th>
               <th style={thStyle}>Linked Buyer</th>
-              <th style={thStyle}>Default Packing</th>
-              <th style={thStyle}>Default Origin</th>
+              <th style={thStyle}>Product Types</th>
+              <th style={thStyle}>Packing Sizes</th>
               <th style={{ ...thStyle, textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
@@ -118,8 +121,16 @@ export function BrandList() {
                       <span style={{ color: 'var(--text-muted)' }}>{getBuyerName(brand.buyerId)}</span>
                     </div>
                   </td>
-                  <td style={tdStyle}>{brand.defaultPacking || '—'}</td>
-                  <td style={tdStyle}>{brand.defaultOrigin || '—'}</td>
+                  <td style={tdStyle}>
+                    {brand.productTypes?.length ? (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        {brand.productTypes.map((pt) => (
+                          <span key={pt} style={{ fontSize: '10px', color: 'var(--text-muted)', background: 'var(--bg)', padding: '2px 6px', borderRadius: '3px', border: '1px solid var(--border)' }}>{pt}</span>
+                        ))}
+                      </div>
+                    ) : <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>ทุกประเภท</span>}
+                  </td>
+                  <td style={tdStyle}>{brand.packingSizes?.length ? brand.packingSizes.join(', ') : (brand.defaultPacking || '—')}</td>
                   <td style={{ ...tdStyle, textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
                       <Link to={`/brands/${brand.id}`}>
@@ -135,6 +146,7 @@ export function BrandList() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

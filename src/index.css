@@ -29,6 +29,26 @@
   padding: 0;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Hide scrollbar visually but keep horizontal scrolling (used for wide tables on mobile) */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Prevent iOS from auto-zooming when focusing form fields on small screens */
+@media (max-width: 640px) {
+  input, textarea, select {
+    font-size: 16px;
+  }
+}
+
 body {
   font-family: 'Inter', 'Noto Sans Thai', system-ui, sans-serif;
   background: var(--bg);

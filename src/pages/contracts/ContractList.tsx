@@ -9,6 +9,7 @@ import { Button } from '../../components/UI/Button';
 import { Badge } from '../../components/UI/Badge';
 import { Modal, ConfirmModal } from '../../components/UI/Modal';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
+import { useResponsive } from '../../hooks/useMediaQuery';
 
 const fmtDate = (d?: string) =>
   d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -16,16 +17,17 @@ const fmtDate = (d?: string) =>
 const fmtUSD = (n: number) =>
   'USD ' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-type BadgeVariant = 'neutral' | 'primary' | 'success' | 'locked' | 'warning';
+type BadgeVariant = 'neutral' | 'primary' | 'success' | 'warning';
 const statusVariant = (s: ContractStatus): BadgeVariant =>
-  ({ draft: 'neutral', finalized: 'primary', signed: 'success', locked: 'locked' } as const)[s];
+  ({ draft: 'neutral', finalized: 'primary', signed: 'success' } as const)[s];
 
 const statusLabel: Record<ContractStatus, string> = {
-  draft: 'Draft', finalized: 'Finalized', signed: 'Signed', locked: 'Locked',
+  draft: 'Draft', finalized: 'Finalized', signed: 'Signed',
 };
 
 export function ContractList() {
   const navigate = useNavigate();
+  const { isMobile } = useResponsive();
   const [contracts, setContracts] = useState<SaleContract[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -124,8 +126,8 @@ export function ContractList() {
   if (loading) return <LoadingSpinner message="Loading contracts..." fullPage={false} />;
 
   return (
-    <div style={{ padding: '28px 32px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+    <div style={{ padding: isMobile ? '16px' : '28px 32px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--primary)' }}>Sale Contracts</h1>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
@@ -145,7 +147,6 @@ export function ContractList() {
           <option value="draft">Draft</option>
           <option value="finalized">Finalized</option>
           <option value="signed">Signed</option>
-          <option value="locked">Locked</option>
         </select>
         <select value={buyerFilter} onChange={(e) => setBuyerFilter(e.target.value)} style={filterSelect}>
           <option value="">All Buyers</option>
@@ -173,6 +174,7 @@ export function ContractList() {
                 <th style={thStyle}>Shipment</th>
                 <th style={{ ...thStyle, textAlign: 'right' }}>Total (USD)</th>
                 <th style={thStyle}>Status</th>
+                <th style={thStyle}>By</th>
                 <th style={thStyle}>Signed File</th>
                 <th style={{ ...thStyle, textAlign: 'right' }}>Actions</th>
               </tr>
@@ -180,7 +182,7 @@ export function ContractList() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={8} style={{ ...tdStyle, textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
+                  <td colSpan={9} style={{ ...tdStyle, textAlign: 'center', padding: '48px', color: 'var(--text-muted)' }}>
                     <FileText size={32} style={{ opacity: 0.3, display: 'block', margin: '0 auto 8px' }} />
                     {search || statusFilter || buyerFilter || yearFilter ? 'No contracts match your filters.' : 'No contracts yet. Create your first one.'}
                   </td>
@@ -210,6 +212,16 @@ export function ContractList() {
                     <td style={tdStyle}>
                       <Badge variant={statusVariant(c.status)}>{c.isLocked && '🔒 '}{statusLabel[c.status]}</Badge>
                     </td>
+                    <td style={{ ...tdStyle, fontSize: '11px', color: 'var(--text-muted)', maxWidth: '130px' }}>
+                      {c.createdByName ? (
+                        <div>
+                          <div title={`Created by ${c.createdByName}`}>{c.createdByName}</div>
+                          {c.updatedByName && c.updatedByName !== c.createdByName && (
+                            <div style={{ fontSize: '10px' }} title={`Updated by ${c.updatedByName}`}>✎ {c.updatedByName}</div>
+                          )}
+                        </div>
+                      ) : '—'}
+                    </td>
                     <td style={{ ...tdStyle, fontSize: '11px', color: 'var(--text-muted)', maxWidth: '140px' }}>
                       {c.signedFileName ? (
                         <span style={{ color: 'var(--success)' }} title={c.signedFileName}>
@@ -229,7 +241,7 @@ export function ContractList() {
                         )}
                         {c.status === 'finalized' && !c.isLocked && (
                           <Button variant="success" size="sm" onClick={() => { setUploadTarget(c); setUploadFile(null); setUploadError(null); }}>
-                            <Upload size={12} /> Sign
+                            <Upload size={12} /> Upload Sign File
                           </Button>
                         )}
                         {c.isLocked && (

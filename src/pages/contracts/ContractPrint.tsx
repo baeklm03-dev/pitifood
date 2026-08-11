@@ -9,6 +9,7 @@ import type { Buyer, ProductLine, SaleContract } from '../../types';
 import { formatShipment } from '../../utils/shipment';
 import { Button } from '../../components/UI/Button';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
+import { useResponsive } from '../../hooks/useMediaQuery';
 
 const fmtDateLong = (d?: string) =>
   d ? new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—';
@@ -58,6 +59,7 @@ function groupByProductType(lines: ProductLine[]): ProductGroup[] {
 export function ContractPrint() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isMobile } = useResponsive();
 
   const [contract, setContract] = useState<SaleContract | null>(null);
   const [buyer, setBuyer] = useState<Buyer | null>(null);
@@ -133,15 +135,21 @@ export function ContractPrint() {
   const ActionBar = () => (
     <div className="no-print" style={{
       display: 'flex', alignItems: 'center', gap: '10px',
-      padding: '12px 24px', background: 'var(--primary)',
-      position: 'sticky', top: 0, zIndex: 10,
+      padding: isMobile ? '10px 14px' : '12px 24px', background: 'var(--primary)',
+      position: 'sticky', top: 0, zIndex: 10, flexWrap: 'wrap',
     }}>
       <button onClick={() => navigate('/contracts')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex' }}>
         <ChevronLeft size={20} />
       </button>
-      <span style={{ color: '#fff', fontWeight: 600, fontSize: '14px', flex: 1 }}>
-        {contract.contractNo}
-      </span>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <span style={{ color: '#fff', fontWeight: 600, fontSize: '14px' }}>{contract.contractNo}</span>
+        {(contract.createdByName || contract.updatedByName) && (
+          <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>
+            {contract.createdByName && `Created by ${contract.createdByName}`}
+            {contract.updatedByName && contract.updatedByName !== contract.createdByName && ` · Updated by ${contract.updatedByName}`}
+          </span>
+        )}
+      </div>
       {signedUrl && (
         <a href={signedUrl} target="_blank" rel="noreferrer">
           <Button variant="ghost" size="sm" style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.4)' }}>
@@ -168,7 +176,7 @@ export function ContractPrint() {
   return (
     <div>
       <ActionBar />
-      <div style={{ background: '#E5E7EB', padding: '32px 24px', minHeight: 'calc(100vh - 56px)' }}>
+      <div style={{ background: '#E5E7EB', padding: isMobile ? '16px 12px' : '32px 24px', minHeight: 'calc(100vh - 56px)', overflowX: 'auto' }}>
         <div
           ref={pageRef}
           className="print-page"
@@ -176,6 +184,7 @@ export function ContractPrint() {
             width: '794px', minHeight: '1123px', margin: '0 auto', background: '#fff',
             padding: '32px 36px', boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
             fontFamily: "'Inter', Arial, sans-serif", fontSize: '8.5pt', color: '#000',
+            display: 'flex', flexDirection: 'column',
           }}
         >
           {/* Header (logo overlaps center, doesn't push content down) */}
@@ -219,10 +228,12 @@ export function ContractPrint() {
             const groupQty = group.lines.reduce((s, p) => s + p.quantity, 0);
             const groupWeight = group.lines.reduce((s, p) => s + p.totalWeight, 0);
             const groupAmount = group.lines.reduce((s, p) => s + p.totalAmount, 0);
+            const groupBrands = Array.from(new Set(group.lines.map((p) => p.brand).filter(Boolean)));
+            const brandLabel = groupBrands.length ? ` "${groupBrands.join(', ')}"` : '';
             return (
               <div key={group.productType + gi} style={{ marginBottom: '4pt' }}>
                 <div style={{ fontWeight: 600, fontSize: '8.5pt', marginBottom: '2pt' }}>
-                  {gi + 1}.&nbsp;&nbsp;{group.productType}
+                  {gi + 1}.&nbsp;&nbsp;{group.productType}{brandLabel}
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                   <colgroup>
@@ -336,12 +347,8 @@ export function ContractPrint() {
           {/* Disclaimer */}
           <div style={{ fontSize: '8pt', lineHeight: 1.5, marginBottom: '18pt' }}>{DISCLAIMER}</div>
 
-          {contract.remarks && (
-            <div style={{ border, padding: '5pt 8pt', marginBottom: '12pt' }}>
-              <span style={{ fontWeight: 700, fontSize: '8pt' }}>Remarks: </span>
-              <span style={{ fontSize: '8pt' }}>{contract.remarks}</span>
-            </div>
-          )}
+          {/* Pushes the signature block + footer to the bottom of the page when content is short */}
+          <div style={{ flex: 1 }} />
 
           {/* Signature line */}
           <div style={{ display: 'flex', alignItems: 'baseline', fontSize: '8.5pt', marginBottom: '4pt' }}>

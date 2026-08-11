@@ -7,6 +7,7 @@ import { exportSizeReport, exportCustomerPriceQtyReport } from '../utils/exportC
 import { formatShipment } from '../utils/shipment';
 import type { SaleContract, ContractStatus } from '../types';
 import { useAuth } from '../hooks/useAuth';
+import { useResponsive } from '../hooks/useMediaQuery';
 import { Button } from '../components/UI/Button';
 import { Badge } from '../components/UI/Badge';
 import { LoadingSpinner } from '../components/UI/LoadingSpinner';
@@ -25,18 +26,19 @@ const fmtUSD = (n: number) => {
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-type StatusVariant = 'neutral' | 'primary' | 'success' | 'locked';
+type StatusVariant = 'neutral' | 'primary' | 'success';
 const statusVariant = (s: ContractStatus): StatusVariant =>
-  ({ draft: 'neutral', finalized: 'primary', signed: 'success', locked: 'locked' } as const)[s];
+  ({ draft: 'neutral', finalized: 'primary', signed: 'success' } as const)[s];
 
 const statusLabel: Record<ContractStatus, string> = {
-  draft: 'Draft', finalized: 'Finalized', signed: 'Signed', locked: 'Locked',
+  draft: 'Draft', finalized: 'Finalized', signed: 'Signed',
 };
 
 interface Filters { year: string; month: string; buyerCode: string; status: string; }
 
 export function Dashboard() {
   const { user } = useAuth();
+  const { isMobile } = useResponsive();
   const [contracts, setContracts] = useState<SaleContract[]>([]);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<Filters>({ year: '', month: '', buyerCode: '', status: '' });
@@ -78,7 +80,7 @@ export function Dashboard() {
     return {
       total: contracts.length,
       active: contracts.filter((c) => c.status === 'draft' || c.status === 'finalized').length,
-      locked: contracts.filter((c) => c.status === 'locked' || c.status === 'signed').length,
+      signed: contracts.filter((c) => c.status === 'signed').length,
       totalValue: totalVal,
     };
   }, [contracts]);
@@ -144,8 +146,8 @@ export function Dashboard() {
   if (loading) return <LoadingSpinner message="Loading dashboard..." fullPage={false} />;
 
   return (
-    <div style={{ padding: '24px 32px' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '24px' }}>
+    <div style={{ padding: isMobile ? '16px' : '24px 32px' }}>
+      <div style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'flex-end', justifyContent: 'space-between', marginBottom: '24px', flexWrap: 'wrap', gap: '12px', flexDirection: isMobile ? 'column' : 'row' }}>
         <div>
           <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--primary)', marginBottom: '2px' }}>
             {greeting}, {user?.fullName} 👋
@@ -161,11 +163,11 @@ export function Dashboard() {
       </div>
 
       {/* Stat Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? '10px' : '14px', marginBottom: '24px' }}>
         {[
           { label: 'Total Contracts', value: globalStats.total, icon: <FileText size={32} />, bg: 'var(--primary)', to: '/contracts' },
           { label: 'Active (Draft + Finalized)', value: globalStats.active, icon: <TrendingUp size={32} />, bg: 'var(--primary-light)', to: '/contracts' },
-          { label: 'Locked / Signed', value: globalStats.locked, icon: <Lock size={32} />, bg: 'var(--locked)', to: '/contracts' },
+          { label: 'Signed', value: globalStats.signed, icon: <Lock size={32} />, bg: 'var(--locked)', to: '/contracts' },
           { label: 'Total Value (USD)', value: fmtUSD(globalStats.totalValue), icon: <DollarSign size={32} />, bg: 'var(--accent)', to: '/contracts' },
         ].map((card) => (
           <Link key={card.label} to={card.to} style={{ background: card.bg, borderRadius: 'var(--radius-lg)', padding: '22px', color: '#fff', textDecoration: 'none', position: 'relative', overflow: 'hidden', display: 'block', transition: 'filter 0.15s, transform 0.15s, box-shadow 0.15s', boxShadow: 'var(--shadow-sm)' }}
@@ -201,7 +203,6 @@ export function Dashboard() {
           <option value="draft">Draft</option>
           <option value="finalized">Finalized</option>
           <option value="signed">Signed</option>
-          <option value="locked">Locked</option>
         </select>
         {hasFilters && (
           <button onClick={() => setFilters({ year: '', month: '', buyerCode: '', status: '' })} style={{ ...filterSelect, border: 'none', background: 'none', color: 'var(--text-muted)' }}>
@@ -294,7 +295,7 @@ export function Dashboard() {
       </div>
 
       {/* Size + Buyer breakdown */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <BarChart3 size={15} style={{ color: 'var(--accent)' }} />

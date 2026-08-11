@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronLeft, Save } from 'lucide-react';
+import { ChevronLeft, Save, Plus, Trash2 } from 'lucide-react';
 import { brandService } from '../../services/brandService';
 import { buyerService } from '../../services/buyerService';
 import type { Brand, Buyer } from '../../types';
+import { PRODUCT_TYPES } from '../../utils/productTypes';
 import { Button } from '../../components/UI/Button';
 import { Input, Textarea, Select } from '../../components/UI/Input';
+import { RequirementRows } from '../../components/UI/RequirementRows';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
+import { useResponsive } from '../../hooks/useMediaQuery';
+import { PRODUCT_SPEC_PRESETS, PACKING_DETAIL_PRESETS, defaultRowsFrom } from '../../utils/requirementPresets';
 
 interface FormErrors {
   brandName?: string;
@@ -20,10 +24,14 @@ export function BrandForm() {
   const navigate = useNavigate();
   const isEdit = Boolean(id) && id !== 'new';
 
+  const { isMobile } = useResponsive();
   const [buyers, setBuyers] = useState<Buyer[]>([]);
   const [form, setForm] = useState<BrandData>({
     brandName: '', buyerId: '', buyerCode: '',
-    defaultPacking: '', defaultOrigin: 'Thailand', defaultSpec: '', notes: '',
+    productTypes: [], packingSizes: [],
+    productSpecRows: defaultRowsFrom(PRODUCT_SPEC_PRESETS), productSpecRemark: '',
+    packingDetailRows: defaultRowsFrom(PACKING_DETAIL_PRESETS), packingDetailRemark: '',
+    defaultPacking: '', defaultOrigin: 'Thailand', notes: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [loadingPage, setLoadingPage] = useState(true);
@@ -39,9 +47,16 @@ export function BrandForm() {
           brandName: existing.brandName,
           buyerId: existing.buyerId,
           buyerCode: existing.buyerCode,
+          productTypes: existing.productTypes ?? [],
+          packingSizes: existing.packingSizes?.length
+            ? existing.packingSizes
+            : (existing.defaultPacking ? [existing.defaultPacking] : []),
+          productSpecRows: existing.productSpecRows?.length ? existing.productSpecRows : defaultRowsFrom(PRODUCT_SPEC_PRESETS),
+          productSpecRemark: existing.productSpecRemark ?? '',
+          packingDetailRows: existing.packingDetailRows?.length ? existing.packingDetailRows : defaultRowsFrom(PACKING_DETAIL_PRESETS),
+          packingDetailRemark: existing.packingDetailRemark ?? '',
           defaultPacking: existing.defaultPacking ?? '',
           defaultOrigin: existing.defaultOrigin ?? 'Thailand',
-          defaultSpec: existing.defaultSpec ?? '',
           notes: existing.notes ?? '',
         });
         setLoadingPage(false);
@@ -55,6 +70,21 @@ export function BrandForm() {
     setForm((prev) => ({ ...prev, [key]: value }));
     if (errors[key as keyof FormErrors]) setErrors((prev) => ({ ...prev, [key]: undefined }));
   };
+
+  const toggleProductType = (pt: string) => {
+    setForm((prev) => ({
+      ...prev,
+      productTypes: prev.productTypes.includes(pt)
+        ? prev.productTypes.filter((x) => x !== pt)
+        : [...prev.productTypes, pt],
+    }));
+  };
+
+  const addPacking = () => setForm((prev) => ({ ...prev, packingSizes: [...prev.packingSizes, ''] }));
+  const updatePacking = (idx: number, value: string) =>
+    setForm((prev) => ({ ...prev, packingSizes: prev.packingSizes.map((p, i) => (i === idx ? value : p)) }));
+  const removePacking = (idx: number) =>
+    setForm((prev) => ({ ...prev, packingSizes: prev.packingSizes.filter((_, i) => i !== idx) }));
 
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
@@ -71,13 +101,17 @@ export function BrandForm() {
     setFormError(null);
     try {
       const buyer = buyers.find((b) => b.id === form.buyerId);
+      const packingSizes = form.packingSizes.map((p) => p.trim()).filter(Boolean);
       const data: BrandData = {
         ...form,
         brandName: form.brandName.trim(),
         buyerCode: buyer?.code ?? form.buyerCode,
-        defaultPacking: form.defaultPacking || undefined,
+        productTypes: form.productTypes,
+        packingSizes,
+        defaultPacking: packingSizes[0] || undefined, // keep legacy field in sync
         defaultOrigin: form.defaultOrigin || undefined,
-        defaultSpec: form.defaultSpec || undefined,
+        productSpecRemark: form.productSpecRemark || undefined,
+        packingDetailRemark: form.packingDetailRemark || undefined,
         notes: form.notes || undefined,
       };
       if (isEdit && id) {
@@ -110,7 +144,7 @@ export function BrandForm() {
   if (loadingPage) return <LoadingSpinner message="Loading..." fullPage={false} />;
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: '680px' }}>
+    <div style={{ padding: isMobile ? '16px' : '28px 32px', maxWidth: '680px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
         <button onClick={() => navigate('/brands')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
           <ChevronLeft size={20} />
@@ -135,7 +169,7 @@ export function BrandForm() {
         <div style={cardStyle}>
           <p style={sectionTitle}>Brand Information</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px' }}>
               <Input label="Brand Name *" value={form.brandName} onChange={(e) => setField('brandName', e.target.value.toUpperCase())} placeholder="e.g. KING" error={errors.brandName} />
               <Select label="Linked Buyer *" value={form.buyerId} onChange={(e) => setField('buyerId', e.target.value)} options={buyerOptions} placeholder="Select buyer..." error={errors.buyerId} />
             </div>
@@ -143,14 +177,91 @@ export function BrandForm() {
         </div>
 
         <div style={cardStyle}>
-          <p style={sectionTitle}>Defaults (auto-filled in contracts)</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <Input label="Default Packing" value={form.defaultPacking ?? ''} onChange={(e) => setField('defaultPacking', e.target.value)} placeholder="e.g. 12X450 g" />
-              <Input label="Default Origin" value={form.defaultOrigin ?? ''} onChange={(e) => setField('defaultOrigin', e.target.value)} placeholder="e.g. Thailand" />
+          <p style={sectionTitle}>Product Types</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '-8px', marginBottom: '16px' }}>
+            เลือกประเภทสินค้าที่ใช้แบรนด์นี้ — เวลาสร้าง contract แบรนด์จะถูกกรองตามประเภทที่เลือก (ไม่เลือก = ใช้ได้ทุกประเภท)
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px' }}>
+            {PRODUCT_TYPES.map((pt) => {
+              const checked = form.productTypes.includes(pt);
+              return (
+                <label key={pt} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', padding: '8px 10px', border: `1.5px solid ${checked ? 'var(--primary)' : 'var(--border)'}`, borderRadius: 'var(--radius)', background: checked ? '#EBF5FB' : 'var(--surface)', fontWeight: checked ? 600 : 400 }}>
+                  <input type="checkbox" checked={checked} onChange={() => toggleProductType(pt)} style={{ width: '15px', height: '15px', accentColor: 'var(--primary)' }} />
+                  {pt}
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={cardStyle}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', paddingBottom: '8px', borderBottom: '1px solid var(--border)' }}>
+            <p style={{ ...sectionTitle, marginBottom: 0, paddingBottom: 0, borderBottom: 'none' }}>Packing Sizes</p>
+            <Button type="button" variant="ghost" size="sm" onClick={addPacking}><Plus size={13} /> Add Size</Button>
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '-8px', marginBottom: '16px' }}>
+            1 แบรนด์มีได้หลายขนาด packing — เวลาสร้าง contract เลือกแบรนด์แล้วขนาดจะเป็น dropdown
+          </p>
+          {form.packingSizes.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '16px', color: 'var(--text-muted)', border: '2px dashed var(--border)', borderRadius: 'var(--radius)', fontSize: '13px' }}>
+              ยังไม่มีขนาด packing.{' '}
+              <button type="button" onClick={addPacking} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)', fontWeight: 600, textDecoration: 'underline' }}>เพิ่มขนาดแรก</button>
             </div>
-            <Textarea label="Default Specification" value={form.defaultSpec ?? ''} onChange={(e) => setField('defaultSpec', e.target.value)} placeholder="Product specification text..." />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {form.packingSizes.map((size, idx) => (
+                <div key={idx} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ flex: 1 }}>
+                    <Input label="" value={size} onChange={(e) => updatePacking(idx, e.target.value)} placeholder="e.g. 12X450 g" />
+                  </div>
+                  <button type="button" onClick={() => removePacking(idx)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', display: 'flex', padding: '8px' }}>
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={cardStyle}>
+          <p style={sectionTitle}>Other Defaults</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <Input label="Default Origin" value={form.defaultOrigin ?? ''} onChange={(e) => setField('defaultOrigin', e.target.value)} placeholder="e.g. Thailand" />
             <Textarea label="Notes" value={form.notes ?? ''} onChange={(e) => setField('notes', e.target.value)} placeholder="Internal notes..." style={{ minHeight: '70px' }} />
+          </div>
+        </div>
+
+        <div style={cardStyle}>
+          <p style={sectionTitle}>PO — รายละเอียดสินค้า (ข้อ 1)</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '-8px', marginBottom: '16px' }}>
+            จะถูกดึงไปเติมในใบ Production Order ของแบรนด์นี้ (แก้ต่อในแต่ละ PO ได้) — พิมพ์ "แบรนด์" เป็นชื่อรายการเพื่อดึงชื่อแบรนด์ด้านบนมาเติมอัตโนมัติ
+          </p>
+          <RequirementRows
+            rows={form.productSpecRows}
+            onChange={(rows) => setForm((p) => ({ ...p, productSpecRows: rows }))}
+            presetLabels={PRODUCT_SPEC_PRESETS}
+            brandName={form.brandName}
+            listId="product-spec-presets"
+          />
+          <div style={{ marginTop: '14px' }}>
+            <Input label="Remark (ข้อควรระวัง)" value={form.productSpecRemark ?? ''} onChange={(e) => setField('productSpecRemark', e.target.value)} placeholder="เช่น ข้อกำหนดซัลไฟล์ไม่เกินปริมาณข้อกำหนดไต้หวัน" />
+          </div>
+        </div>
+
+        <div style={cardStyle}>
+          <p style={sectionTitle}>PO — รายละเอียดและข้อกำหนดบรรจุภัณฑ์ (ข้อ 2)</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '-8px', marginBottom: '16px' }}>
+            จะถูกดึงไปเติมในใบ Production Order ของแบรนด์นี้ (แก้ต่อในแต่ละ PO ได้) — พิมพ์ "แบรนด์" เป็นชื่อรายการเพื่อดึงชื่อแบรนด์ด้านบนมาเติมอัตโนมัติ
+          </p>
+          <RequirementRows
+            rows={form.packingDetailRows}
+            onChange={(rows) => setForm((p) => ({ ...p, packingDetailRows: rows }))}
+            presetLabels={PACKING_DETAIL_PRESETS}
+            brandName={form.brandName}
+            listId="packing-detail-presets"
+          />
+          <div style={{ marginTop: '14px' }}>
+            <Input label="Remark" value={form.packingDetailRemark ?? ''} onChange={(e) => setField('packingDetailRemark', e.target.value)} placeholder="เช่น รายละเอียด Stamp ตาม packaging specification No. ..." />
           </div>
         </div>
 

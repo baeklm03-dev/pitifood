@@ -49,7 +49,6 @@ function mapContract(row: any): SaleContract {
     subCompanyId: row.sub_company_id ?? undefined,
     subCompanyName: row.sub_company_name ?? undefined,
     offerDate: row.offer_date,
-    eta: row.eta ?? undefined,
     shipmentPeriod: row.shipment_period ?? undefined,
     shipmentMonth: row.shipment_month ?? undefined,
     shipmentYear: row.shipment_year ?? undefined,
@@ -70,12 +69,18 @@ function mapContract(row: any): SaleContract {
     signedAt: row.signed_at ?? undefined,
     parentContractId: row.parent_contract_id ?? undefined,
     revision: row.revision ?? 0,
+    createdById: row.created_by_id ?? undefined,
+    createdByName: row.created_by_name ?? undefined,
+    updatedById: row.updated_by_id ?? undefined,
+    updatedByName: row.updated_by_name ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
 const SELECT_QUERY = '*, product_lines(*), signatories(*)';
+
+export interface ContractActor { id: string; name: string; }
 
 export const contractService = {
   async getAll(): Promise<SaleContract[]> {
@@ -97,7 +102,7 @@ export const contractService = {
     return mapContract(data);
   },
 
-  async create(contract: Omit<SaleContract, 'id' | 'createdAt' | 'updatedAt'>): Promise<SaleContract> {
+  async create(contract: Omit<SaleContract, 'id' | 'createdAt' | 'updatedAt'>, actor?: ContractActor): Promise<SaleContract> {
     const { productLines, signatories, signedFileUrl, signedFileName, signedAt, ...rest } = contract;
 
     const { data, error } = await supabase
@@ -110,7 +115,6 @@ export const contractService = {
         sub_company_id: rest.subCompanyId ?? null,
         sub_company_name: rest.subCompanyName ?? null,
         offer_date: rest.offerDate,
-        eta: rest.eta ?? null,
         shipment_period: rest.shipmentPeriod ?? null,
         shipment_month: rest.shipmentMonth ?? null,
         shipment_year: rest.shipmentYear ?? null,
@@ -129,6 +133,10 @@ export const contractService = {
         signed_at: signedAt ?? null,
         parent_contract_id: rest.parentContractId ?? null,
         revision: rest.revision,
+        created_by_id: actor?.id ?? null,
+        created_by_name: actor?.name ?? null,
+        updated_by_id: actor?.id ?? null,
+        updated_by_name: actor?.name ?? null,
       })
       .select()
       .single();
@@ -171,7 +179,8 @@ export const contractService = {
 
   async update(
     id: string,
-    contract: Omit<SaleContract, 'id' | 'contractNo' | 'revision' | 'parentContractId' | 'createdAt' | 'updatedAt'>
+    contract: Omit<SaleContract, 'id' | 'contractNo' | 'revision' | 'parentContractId' | 'createdAt' | 'updatedAt'>,
+    actor?: ContractActor
   ): Promise<void> {
     const { productLines, signatories, signedFileUrl, signedFileName, signedAt, ...rest } = contract;
 
@@ -184,7 +193,6 @@ export const contractService = {
         sub_company_id: rest.subCompanyId ?? null,
         sub_company_name: rest.subCompanyName ?? null,
         offer_date: rest.offerDate,
-        eta: rest.eta ?? null,
         shipment_period: rest.shipmentPeriod ?? null,
         shipment_month: rest.shipmentMonth ?? null,
         shipment_year: rest.shipmentYear ?? null,
@@ -198,6 +206,8 @@ export const contractService = {
         remarks: rest.remarks ?? null,
         status: rest.status,
         is_locked: rest.isLocked,
+        updated_by_id: actor?.id ?? null,
+        updated_by_name: actor?.name ?? null,
       })
       .eq('id', id);
     if (error) throw error;
@@ -251,7 +261,7 @@ export const contractService = {
         signed_file_url: path,
         signed_file_name: file.name,
         signed_at: new Date().toISOString(),
-        status: 'locked',
+        status: 'signed',
         is_locked: true,
       })
       .eq('id', contractId);

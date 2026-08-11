@@ -20,7 +20,7 @@ export function Login() {
     const ok = await login(username.trim(), password);
     setLoading(false);
     if (ok) {
-      navigate('/dashboard');
+      navigate('/');
     } else {
       setError('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
     }

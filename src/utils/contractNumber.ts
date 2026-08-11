@@ -17,8 +17,7 @@ export function generateRevisionContractNo(
   existingContracts: SaleContract[]
 ): string {
   const baseNo = parentContract.contractNo.split(' rev.')[0];
-  const related = existingContracts.filter(
-    (c) => c.contractNo === baseNo || c.contractNo.startsWith(`${baseNo} rev.`)
-  );
-  return `${baseNo} rev.${related.length + 1}`;
+  // Count only prior rewrites (not the base contract itself), so the first rewrite is rev.1.
+  const priorRevisions = existingContracts.filter((c) => c.contractNo.startsWith(`${baseNo} rev.`));
+  return `${baseNo} rev.${priorRevisions.length + 1}`;
 }

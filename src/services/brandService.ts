@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import type { Brand } from '../types';
+import type { Brand, RequirementRow } from '../types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapBrand(row: any): Brand {
@@ -8,12 +8,34 @@ function mapBrand(row: any): Brand {
     brandName: row.brand_name,
     buyerId: row.buyer_id,
     buyerCode: row.buyer_code,
+    productTypes: row.product_types ?? [],
+    packingSizes: row.packing_sizes ?? [],
+    productSpecRows: row.product_spec_rows ?? [],
+    productSpecRemark: row.product_spec_remark ?? undefined,
+    packingDetailRows: row.packing_detail_rows ?? [],
+    packingDetailRemark: row.packing_detail_remark ?? undefined,
     defaultPacking: row.default_packing ?? undefined,
     defaultOrigin: row.default_origin ?? undefined,
-    defaultSpec: row.default_spec ?? undefined,
     notes: row.notes ?? undefined,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+  };
+}
+
+function brandBody(brand: Omit<Brand, 'id' | 'createdAt' | 'updatedAt'>) {
+  return {
+    brand_name: brand.brandName,
+    buyer_id: brand.buyerId,
+    buyer_code: brand.buyerCode,
+    product_types: brand.productTypes ?? [],
+    packing_sizes: brand.packingSizes ?? [],
+    product_spec_rows: (brand.productSpecRows ?? []) as unknown as RequirementRow[],
+    product_spec_remark: brand.productSpecRemark ?? null,
+    packing_detail_rows: (brand.packingDetailRows ?? []) as unknown as RequirementRow[],
+    packing_detail_remark: brand.packingDetailRemark ?? null,
+    default_packing: brand.defaultPacking ?? null,
+    default_origin: brand.defaultOrigin ?? null,
+    notes: brand.notes ?? null,
   };
 }
 
@@ -50,15 +72,7 @@ export const brandService = {
   async create(brand: Omit<Brand, 'id' | 'createdAt' | 'updatedAt'>): Promise<Brand> {
     const { data, error } = await supabase
       .from('brands')
-      .insert({
-        brand_name: brand.brandName,
-        buyer_id: brand.buyerId,
-        buyer_code: brand.buyerCode,
-        default_packing: brand.defaultPacking ?? null,
-        default_origin: brand.defaultOrigin ?? null,
-        default_spec: brand.defaultSpec ?? null,
-        notes: brand.notes ?? null,
-      })
+      .insert(brandBody(brand))
       .select()
       .single();
     if (error) throw error;
@@ -68,15 +82,7 @@ export const brandService = {
   async update(id: string, brand: Omit<Brand, 'id' | 'createdAt' | 'updatedAt'>): Promise<void> {
     const { error } = await supabase
       .from('brands')
-      .update({
-        brand_name: brand.brandName,
-        buyer_id: brand.buyerId,
-        buyer_code: brand.buyerCode,
-        default_packing: brand.defaultPacking ?? null,
-        default_origin: brand.defaultOrigin ?? null,
-        default_spec: brand.defaultSpec ?? null,
-        notes: brand.notes ?? null,
-      })
+      .update(brandBody(brand))
       .eq('id', id);
     if (error) throw error;
   },

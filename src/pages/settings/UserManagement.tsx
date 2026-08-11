@@ -9,6 +9,7 @@ import { Input, Select } from '../../components/UI/Input';
 import { Modal, ConfirmModal } from '../../components/UI/Modal';
 import { Badge } from '../../components/UI/Badge';
 import { useAuth } from '../../hooks/useAuth';
+import { useResponsive } from '../../hooks/useMediaQuery';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 
 interface EditForm { fullName: string; role: UserRole; }
@@ -23,6 +24,7 @@ const emptyCreate = (): CreateForm => ({ username: '', password: '', fullName: '
 
 export function UserManagement() {
   const { user: currentUser } = useAuth();
+  const { isMobile } = useResponsive();
   const [users, setUsers] = useState<SupabaseUserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -132,8 +134,8 @@ export function UserManagement() {
   if (loading) return <LoadingSpinner message="Loading users..." fullPage={false} />;
 
   return (
-    <div style={{ padding: '28px 32px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+    <div style={{ padding: isMobile ? '16px' : '28px 32px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--primary)' }}>User Management</h1>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>{users.length} user{users.length !== 1 ? 's' : ''}</p>
@@ -150,7 +152,8 @@ export function UserManagement() {
       )}
 
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '520px' }}>
           <thead>
             <tr>
               <th style={thStyle}>Full Name</th>
@@ -205,6 +208,7 @@ export function UserManagement() {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Create User Modal */}

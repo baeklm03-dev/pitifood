@@ -2,14 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ChevronLeft, Edit2, Building2, Phone, Mail, MapPin, CreditCard, Ship, Anchor } from 'lucide-react';
 import { buyerService } from '../../services/buyerService';
-import type { Buyer } from '../../types';
+import type { Buyer, RequirementRow } from '../../types';
 import { Button } from '../../components/UI/Button';
 import { Badge } from '../../components/UI/Badge';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
+import { useResponsive } from '../../hooks/useMediaQuery';
 
 export function BuyerView() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { isMobile } = useResponsive();
   const [buyer, setBuyer] = useState<Buyer | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -31,11 +33,26 @@ export function BuyerView() {
       </div>
     ) : null;
 
+  const RowsBlock = ({ label, rows, remark }: { label: string; rows: RequirementRow[]; remark?: string }) =>
+    (rows.length > 0 || remark) ? (
+      <div style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
+        {rows.length > 0 && (
+          <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            {rows.map((r) => (
+              <div key={r.id} style={{ fontSize: '13px' }}><strong>{r.label || '—'}:</strong> {r.detail || '—'}</div>
+            ))}
+          </div>
+        )}
+        {remark && <div style={{ fontSize: '12.5px', color: 'var(--danger)', marginTop: '6px' }}>Remark: {remark}</div>}
+      </div>
+    ) : null;
+
   if (loading) return <LoadingSpinner message="Loading buyer..." fullPage={false} />;
   if (!buyer) return null;
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: '760px' }}>
+    <div style={{ padding: isMobile ? '16px' : '28px 32px', maxWidth: '760px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button onClick={() => navigate('/buyers')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>
@@ -69,7 +86,7 @@ export function BuyerView() {
       </div>
 
       {buyer.hasSubCompanies && buyer.subCompanies.length > 0 && (
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '24px', marginBottom: '16px', boxShadow: 'var(--shadow-sm)' }}>
           <h2 style={{ fontSize: '14px', fontWeight: 600, marginBottom: '16px', color: 'var(--primary)' }}>
             Sub-Companies <Badge variant="primary">{buyer.subCompanies.length}</Badge>
           </h2>
@@ -86,6 +103,11 @@ export function BuyerView() {
           </div>
         </div>
       )}
+
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
+        <RowsBlock label="PO ข้อ 3 — Loading Requirement" rows={buyer.loadingRequirementRows} remark={buyer.loadingRequirementRemark} />
+        <RowsBlock label="PO ข้อ 4 — Document Requirement" rows={buyer.documentRequirementRows} remark={buyer.documentRequirementRemark} />
+      </div>
     </div>
   );
 }

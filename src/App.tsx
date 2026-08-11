@@ -6,6 +6,7 @@ import { useAuth } from './hooks/useAuth';
 import { Navbar } from './components/Layout/Navbar';
 import { LoadingSpinner } from './components/UI/LoadingSpinner';
 import { Login } from './pages/Login';
+import { Home } from './pages/Home';
 import { Dashboard } from './pages/Dashboard';
 import { BuyerList } from './pages/buyers/BuyerList';
 import { BuyerForm } from './pages/buyers/BuyerForm';
@@ -17,6 +18,9 @@ import { UserManagement } from './pages/settings/UserManagement';
 import { ContractList } from './pages/contracts/ContractList';
 import { ContractForm } from './pages/contracts/ContractForm';
 import { ContractPrint } from './pages/contracts/ContractPrint';
+import { POList } from './pages/po/POList';
+import { POForm } from './pages/po/POForm';
+import { POPrint } from './pages/po/POPrint';
 
 // TEMP: set to false to re-enable the login requirement
 const DISABLE_LOGIN = false;
@@ -49,6 +53,7 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
 
       <Route element={<RequireAuth />}>
+        <Route path="/" element={<Home />} />
         <Route path="/dashboard" element={<Dashboard />} />
 
         <Route path="/buyers" element={<BuyerList />} />
@@ -66,10 +71,14 @@ function AppRoutes() {
         <Route path="/contracts/:id/edit" element={<ContractForm />} />
         <Route path="/contracts/:id/print" element={<ContractPrint />} />
 
+        <Route path="/po" element={<POList />} />
+        <Route path="/po/new" element={<POForm />} />
+        <Route path="/po/:id/edit" element={<POForm />} />
+        <Route path="/po/:id/print" element={<POPrint />} />
+
         <Route path="/settings/users" element={<UserManagement />} />
 
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
   );

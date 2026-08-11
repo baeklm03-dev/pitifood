@@ -12,7 +12,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useResponsive } from '../../hooks/useMediaQuery';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 
-interface EditForm { fullName: string; role: UserRole; }
+interface EditForm { username: string; fullName: string; role: UserRole; }
 interface CreateForm { username: string; password: string; fullName: string; role: UserRole; }
 
 const roleOptions = [
@@ -32,8 +32,9 @@ export function UserManagement() {
   // Edit
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<EditForm>({ fullName: '', role: 'admin' });
+  const [editForm, setEditForm] = useState<EditForm>({ username: '', fullName: '', role: 'admin' });
   const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   // Create
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -56,19 +57,28 @@ export function UserManagement() {
 
   const openEdit = (u: SupabaseUserProfile) => {
     setEditingId(u.id);
-    setEditForm({ fullName: u.fullName, role: u.role });
+    setEditForm({ username: u.username ?? '', fullName: u.fullName, role: u.role });
+    setEditError(null);
     setEditModalOpen(true);
   };
 
   const handleSave = async () => {
-    if (!editingId || !editForm.fullName.trim()) return;
+    if (!editingId) return;
+    setEditError(null);
+    if (!editForm.username.trim()) { setEditError('Username is required'); return; }
+    if (!editForm.fullName.trim()) { setEditError('Full name is required'); return; }
+
     setSaving(true);
     try {
-      await userService.updateProfile(editingId, { fullName: editForm.fullName.trim(), role: editForm.role });
+      await userService.updateUser(editingId, {
+        username: editForm.username.trim(),
+        fullName: editForm.fullName.trim(),
+        role: editForm.role,
+      });
       setEditModalOpen(false);
       load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed');
+      setEditError(err instanceof Error ? err.message : 'Save failed');
     } finally {
       setSaving(false);
     }
@@ -284,8 +294,20 @@ export function UserManagement() {
         }
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <Input
+            label="Username *"
+            value={editForm.username}
+            onChange={(e) => setEditForm((p) => ({ ...p, username: e.target.value.toLowerCase().replace(/\s/g, '') }))}
+            placeholder="e.g. john"
+            hint="Changing this also changes the user's login."
+          />
           <Input label="Full Name *" value={editForm.fullName} onChange={(e) => setEditForm((p) => ({ ...p, fullName: e.target.value }))} placeholder="e.g. John Smith" />
           <Select label="Role *" value={editForm.role} onChange={(e) => setEditForm((p) => ({ ...p, role: e.target.value as UserRole }))} options={roleOptions} />
+          {editError && (
+            <div style={{ background: '#FDEDEC', border: '1px solid #F5C6CB', borderRadius: 'var(--radius)', padding: '10px 14px', fontSize: '13px', color: 'var(--danger)' }}>
+              {editError}
+            </div>
+          )}
         </div>
       </Modal>
 

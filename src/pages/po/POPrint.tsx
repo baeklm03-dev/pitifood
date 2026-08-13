@@ -4,8 +4,9 @@ import { FileDown, ChevronLeft, Edit2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { poService } from '../../services/poService';
-import type { ProductionOrder, POLine, RequirementRow } from '../../types';
+import type { ProductionOrder, POLine } from '../../types';
 import { formatDateTH } from '../../utils/thaiDate';
+import { formatProductSpecLines, formatPackingDetailLines, formatLoadingRequirementLines, formatDocumentRequirementLines } from '../../utils/poRequirements';
 import { Button } from '../../components/UI/Button';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 import { useResponsive } from '../../hooks/useMediaQuery';
@@ -54,20 +55,24 @@ function computeLineSpanGroups(lines: POLine[]): (LineSpanGroup | null)[] {
   return result;
 }
 
-// Renders requirement rows as flowing numbered text (e.g. "1.1 label: detail"), not a table.
-function formatRowsText(rows: RequirementRow[], sectionNo: number): string {
-  return rows.map((r, i) => `${sectionNo}.${i + 1} ${r.label || '-'}: ${r.detail || '-'}`).join('\n');
-}
+interface ReqSectionEntry { label: string; lines: string[]; }
 
-interface ReqSectionEntry { label: string; rows: RequirementRow[]; }
-
-function collectSectionEntries(groups: LineGroup[], po: ProductionOrder, key: 'productSpecRows' | 'packingDetailRows'): ReqSectionEntry[] {
+function collectSpecEntries(groups: LineGroup[], po: ProductionOrder): ReqSectionEntry[] {
   return groups
     .map((g) => {
       const pr = po.productRequirements.find((p) => p.productType === g.productType && (p.brand ?? '') === (g.brand ?? ''));
-      return { label: `${g.productType}${g.brand ? ` "${g.brand}"` : ''}`, rows: pr ? pr[key] : [] };
+      return { label: `${g.productType}${g.brand ? ` "${g.brand}"` : ''}`, lines: pr ? formatProductSpecLines(pr.productSpec) : [] };
     })
-    .filter((e) => e.rows.length > 0);
+    .filter((e) => e.lines.length > 0);
+}
+
+function collectPackingEntries(groups: LineGroup[], po: ProductionOrder): ReqSectionEntry[] {
+  return groups
+    .map((g) => {
+      const pr = po.productRequirements.find((p) => p.productType === g.productType && (p.brand ?? '') === (g.brand ?? ''));
+      return { label: `${g.productType}${g.brand ? ` "${g.brand}"` : ''}`, lines: pr ? formatPackingDetailLines(pr.packingDetail) : [] };
+    })
+    .filter((e) => e.lines.length > 0);
 }
 
 // One heading; flat text if only one product has content, otherwise a bullet per product
@@ -78,12 +83,12 @@ function RequirementSection({ sectionNo, title, entries }: { sectionNo: number; 
     <div style={{ marginBottom: '6pt' }}>
       <div style={{ fontWeight: 600, fontSize: '8.5pt' }}>{sectionNo}. {title}</div>
       {entries.length === 1 ? (
-        <div style={{ fontSize: '8pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '4pt' }}>{formatRowsText(entries[0].rows, sectionNo)}</div>
+        <div style={{ fontSize: '8pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '4pt' }}>{entries[0].lines.join('\n')}</div>
       ) : (
         entries.map((e, i) => (
           <div key={i} style={{ marginTop: '2pt', paddingLeft: '4pt' }}>
             <div style={{ fontSize: '8pt', fontWeight: 600 }}>• {e.label}</div>
-            <div style={{ fontSize: '7.5pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '10pt' }}>{formatRowsText(e.rows, sectionNo)}</div>
+            <div style={{ fontSize: '7.5pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '10pt' }}>{e.lines.join('\n')}</div>
           </div>
         ))
       )}
@@ -121,8 +126,10 @@ export function POPrint() {
 
   const groups = groupLines(po.lines);
   const spanGroups = computeLineSpanGroups(po.lines);
-  const specEntries = collectSectionEntries(groups, po, 'productSpecRows');
-  const packingEntries = collectSectionEntries(groups, po, 'packingDetailRows');
+  const specEntries = collectSpecEntries(groups, po);
+  const packingEntries = collectPackingEntries(groups, po);
+  const loadingLines = formatLoadingRequirementLines(po.loadingRequirement);
+  const documentLines = formatDocumentRequirementLines(po.documentRequirement);
 
   const remarks: RemarkEntry[] = [];
   po.productRequirements.forEach((pr) => {
@@ -297,24 +304,20 @@ export function POPrint() {
           )}
 
           {/* Requirements — flat text for one product, bulleted per product when there's more than one */}
-          {(specEntries.length > 0 || packingEntries.length > 0 || po.loadingRequirementRows.length > 0 || po.documentRequirementRows.length > 0) && (
-            <div style={{ fontWeight: 700, fontSize: '9pt', marginBottom: '3pt' }}>ข้อกำหนดอื่นๆ</div>
-          )}
+          <div style={{ fontWeight: 700, fontSize: '9pt', marginBottom: '3pt' }}>ข้อกำหนดอื่นๆ</div>
           <RequirementSection sectionNo={1} title="รายละเอียดสินค้า (Product specification)" entries={specEntries} />
           <RequirementSection sectionNo={2} title="รายละเอียดและข้อกำหนดบรรจุภัณฑ์" entries={packingEntries} />
 
-          {po.loadingRequirementRows.length > 0 && (
+          {loadingLines.length > 0 && (
             <div style={{ marginBottom: '6pt' }}>
               <div style={{ fontWeight: 600, fontSize: '8.5pt' }}>3. ข้อกำหนดการโหลด (Loading requirement)</div>
-              <div style={{ fontSize: '8pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '4pt' }}>{formatRowsText(po.loadingRequirementRows, 3)}</div>
+              <div style={{ fontSize: '8pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '4pt' }}>{loadingLines.join('\n')}</div>
             </div>
           )}
-          {po.documentRequirementRows.length > 0 && (
-            <div style={{ marginBottom: '6pt' }}>
-              <div style={{ fontWeight: 600, fontSize: '8.5pt' }}>4. การจัดเตรียมเอกสารและภาพถ่าย</div>
-              <div style={{ fontSize: '8pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '4pt' }}>{formatRowsText(po.documentRequirementRows, 4)}</div>
-            </div>
-          )}
+          <div style={{ marginBottom: '6pt' }}>
+            <div style={{ fontWeight: 600, fontSize: '8.5pt' }}>4. การจัดเตรียมเอกสารและภาพถ่าย</div>
+            <div style={{ fontSize: '8pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '4pt' }}>{documentLines.join('\n')}</div>
+          </div>
 
           {/* Signatures — left shows the preparer's name (no signing needed), right is a blank signature space */}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16pt', marginBottom: '10pt' }}>
@@ -324,7 +327,7 @@ export function POPrint() {
             </div>
             <div style={{ textAlign: 'center', width: '45%' }}>
               <div style={{ borderBottom: '0.5pt dotted #000', minHeight: '20pt' }} />
-              <div style={{ fontSize: '8.5pt', marginTop: '3pt' }}>ผู้ผลิต</div>
+              <div style={{ fontSize: '8.5pt', marginTop: '3pt' }}>ผู้อนุมัติ</div>
             </div>
           </div>
 

@@ -9,11 +9,14 @@ import { useAuth } from '../../hooks/useAuth';
 import { useResponsive } from '../../hooks/useMediaQuery';
 import { generatePoNo } from '../../utils/poNumber';
 import { formatDeliveryNoteTH } from '../../utils/deliveryNote';
-import { PRODUCT_SPEC_PRESETS, PACKING_DETAIL_PRESETS, LOADING_REQUIREMENT_PRESETS, DOCUMENT_REQUIREMENT_PRESETS, defaultRowsFrom } from '../../utils/requirementPresets';
-import type { SaleContract, Buyer, Brand, ProductionOrder, POLine, POStatus, RequirementRow, ProductRequirement } from '../../types';
+import { emptyProductSpec, emptyPackingDetail, emptyLoadingRequirement, emptyDocumentRequirement } from '../../utils/poRequirements';
+import type { SaleContract, Buyer, Brand, ProductionOrder, POLine, POStatus, ProductSpecDetail, PackingDetail, LoadingRequirement, DocumentRequirement, ProductRequirement } from '../../types';
 import { Button } from '../../components/UI/Button';
 import { Input } from '../../components/UI/Input';
-import { RequirementRows } from '../../components/UI/RequirementRows';
+import { ProductSpecFields } from '../../components/UI/ProductSpecFields';
+import { PackingDetailFields } from '../../components/UI/PackingDetailFields';
+import { LoadingRequirementFields } from '../../components/UI/LoadingRequirementFields';
+import { DocumentRequirementFields } from '../../components/UI/DocumentRequirementFields';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 
 function uid() {
@@ -94,36 +97,30 @@ function computeRowSpanGroups(rows: LineRow[]): (RowSpanGroup | null)[] {
   return result;
 }
 
-// Clones an existing row set with fresh ids; falls back to the Sheet1 main-item
-// presets when there's nothing set yet, so a first-time section isn't blank.
-function cloneRows(rows: RequirementRow[] | undefined, presets: string[]): RequirementRow[] {
-  return rows?.length ? rows.map((r) => ({ ...r, id: uid() })) : defaultRowsFrom(presets);
-}
-
 // Form-local shape mirrors ProductRequirement but keeps remarks as plain (controlled) strings.
 interface ProductReqRow {
   id: string;
   productType: string;
   brand: string;
-  productSpecRows: RequirementRow[];
+  productSpec: ProductSpecDetail;
   productSpecRemark: string;
-  packingDetailRows: RequirementRow[];
+  packingDetail: PackingDetail;
   packingDetailRemark: string;
 }
 
 function prToRow(pr: ProductRequirement): ProductReqRow {
   return {
     id: pr.id, productType: pr.productType, brand: pr.brand ?? '',
-    productSpecRows: pr.productSpecRows, productSpecRemark: pr.productSpecRemark ?? '',
-    packingDetailRows: pr.packingDetailRows, packingDetailRemark: pr.packingDetailRemark ?? '',
+    productSpec: pr.productSpec, productSpecRemark: pr.productSpecRemark ?? '',
+    packingDetail: pr.packingDetail, packingDetailRemark: pr.packingDetailRemark ?? '',
   };
 }
 
 function rowToPr(r: ProductReqRow): ProductRequirement {
   return {
     id: r.id, productType: r.productType, brand: r.brand || undefined,
-    productSpecRows: r.productSpecRows, productSpecRemark: r.productSpecRemark || undefined,
-    packingDetailRows: r.packingDetailRows, packingDetailRemark: r.packingDetailRemark || undefined,
+    productSpec: r.productSpec, productSpecRemark: r.productSpecRemark || undefined,
+    packingDetail: r.packingDetail, packingDetailRemark: r.packingDetailRemark || undefined,
   };
 }
 
@@ -146,9 +143,9 @@ function defaultProductReq(productType: string, brand: string, brands: Brand[]):
   const brandRecord = brands.find((b) => b.brandName === brand);
   return {
     id: uid(), productType, brand,
-    productSpecRows: cloneRows(brandRecord?.productSpecRows, PRODUCT_SPEC_PRESETS),
+    productSpec: brandRecord?.productSpec ?? emptyProductSpec(),
     productSpecRemark: brandRecord?.productSpecRemark ?? '',
-    packingDetailRows: cloneRows(brandRecord?.packingDetailRows, PACKING_DETAIL_PRESETS),
+    packingDetail: brandRecord?.packingDetail ?? emptyPackingDetail(),
     packingDetailRemark: brandRecord?.packingDetailRemark ?? '',
   };
 }
@@ -159,9 +156,9 @@ interface FormState {
   poDate: string;
   deliveryNote: string;
   productRequirements: ProductReqRow[];
-  loadingRequirementRows: RequirementRow[];
+  loadingRequirement: LoadingRequirement;
   loadingRequirementRemark: string;
-  documentRequirementRows: RequirementRow[];
+  documentRequirement: DocumentRequirement;
   documentRequirementRemark: string;
   preparedBy: string;
   approvedBy: string;
@@ -171,8 +168,8 @@ interface FormState {
 const emptyForm: FormState = {
   contractId: '', attn: '', poDate: TODAY, deliveryNote: '',
   productRequirements: [],
-  loadingRequirementRows: [], loadingRequirementRemark: '',
-  documentRequirementRows: [], documentRequirementRemark: '',
+  loadingRequirement: emptyLoadingRequirement(), loadingRequirementRemark: '',
+  documentRequirement: emptyDocumentRequirement(), documentRequirementRemark: '',
   preparedBy: '', approvedBy: '', rows: [],
 };
 
@@ -210,9 +207,9 @@ export function POForm() {
           poDate: po.poDate,
           deliveryNote: po.deliveryNote ?? '',
           productRequirements: (po.productRequirements ?? []).map(prToRow),
-          loadingRequirementRows: cloneRows(po.loadingRequirementRows, LOADING_REQUIREMENT_PRESETS),
+          loadingRequirement: po.loadingRequirement ?? emptyLoadingRequirement(),
           loadingRequirementRemark: po.loadingRequirementRemark ?? '',
-          documentRequirementRows: cloneRows(po.documentRequirementRows, DOCUMENT_REQUIREMENT_PRESETS),
+          documentRequirement: po.documentRequirement ?? emptyDocumentRequirement(),
           documentRequirementRemark: po.documentRequirementRemark ?? '',
           preparedBy: po.preparedBy ?? '',
           approvedBy: po.approvedBy ?? '',
@@ -259,9 +256,9 @@ export function POForm() {
       const brandRecord = brands.find((b) => b.brandName === p.brand && b.buyerId === c.buyerId);
       productRequirements.push({
         id: uid(), productType: p.productType, brand: p.brand,
-        productSpecRows: cloneRows(brandRecord?.productSpecRows, PRODUCT_SPEC_PRESETS),
+        productSpec: brandRecord?.productSpec ?? emptyProductSpec(),
         productSpecRemark: brandRecord?.productSpecRemark ?? '',
-        packingDetailRows: cloneRows(brandRecord?.packingDetailRows, PACKING_DETAIL_PRESETS),
+        packingDetail: brandRecord?.packingDetail ?? emptyPackingDetail(),
         packingDetailRemark: brandRecord?.packingDetailRemark ?? '',
       });
     });
@@ -272,9 +269,9 @@ export function POForm() {
       attn: DEFAULT_PO_ATTN,
       deliveryNote,
       productRequirements,
-      loadingRequirementRows: cloneRows(buyer?.loadingRequirementRows, LOADING_REQUIREMENT_PRESETS),
+      loadingRequirement: buyer?.loadingRequirement ?? emptyLoadingRequirement(),
       loadingRequirementRemark: buyer?.loadingRequirementRemark ?? '',
-      documentRequirementRows: cloneRows(buyer?.documentRequirementRows, DOCUMENT_REQUIREMENT_PRESETS),
+      documentRequirement: buyer?.documentRequirement ?? emptyDocumentRequirement(),
       documentRequirementRemark: buyer?.documentRequirementRemark ?? '',
       rows,
     }));
@@ -339,9 +336,9 @@ export function POForm() {
         poDate: form.poDate,
         deliveryNote: form.deliveryNote || undefined,
         productRequirements: lineGroups.map((g) => getRequirement(g.productType, g.brand)).map(rowToPr),
-        loadingRequirementRows: form.loadingRequirementRows,
+        loadingRequirement: form.loadingRequirement,
         loadingRequirementRemark: form.loadingRequirementRemark || undefined,
-        documentRequirementRows: form.documentRequirementRows,
+        documentRequirement: form.documentRequirement,
         documentRequirementRemark: form.documentRequirementRemark || undefined,
         preparedBy: form.preparedBy || undefined,
         approvedBy: form.approvedBy || undefined,
@@ -536,12 +533,12 @@ export function POForm() {
                   {g.productType || '—'}{g.brand ? ` "${g.brand}"` : ''}
                 </div>
                 <label style={{ fontSize: '12.5px', fontWeight: 500, display: 'block', marginBottom: '6px' }}>{i + 1}.1 รายละเอียดสินค้า (Product specification)</label>
-                <RequirementRows rows={pr.productSpecRows} onChange={(rows) => updateRequirement(g.productType, g.brand, { productSpecRows: rows })} presetLabels={PRODUCT_SPEC_PRESETS} brandName={g.brand} listId={`po-product-spec-${i}`} />
+                <ProductSpecFields value={pr.productSpec} onChange={(v) => updateRequirement(g.productType, g.brand, { productSpec: v })} />
                 <div style={{ marginTop: '8px', marginBottom: '14px' }}>
                   <Input label="Remark" value={pr.productSpecRemark} onChange={(e) => updateRequirement(g.productType, g.brand, { productSpecRemark: e.target.value })} />
                 </div>
                 <label style={{ fontSize: '12.5px', fontWeight: 500, display: 'block', marginBottom: '6px' }}>{i + 1}.2 รายละเอียดและข้อกำหนดบรรจุภัณฑ์</label>
-                <RequirementRows rows={pr.packingDetailRows} onChange={(rows) => updateRequirement(g.productType, g.brand, { packingDetailRows: rows })} presetLabels={PACKING_DETAIL_PRESETS} brandName={g.brand} listId={`po-packing-detail-${i}`} />
+                <PackingDetailFields fieldId={`po-packing-detail-${i}`} value={pr.packingDetail} onChange={(v) => updateRequirement(g.productType, g.brand, { packingDetail: v })} />
                 <div style={{ marginTop: '8px' }}>
                   <Input label="Remark" value={pr.packingDetailRemark} onChange={(e) => updateRequirement(g.productType, g.brand, { packingDetailRemark: e.target.value })} />
                 </div>
@@ -556,14 +553,14 @@ export function POForm() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
             <label style={{ fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px' }}>3. ข้อกำหนดการโหลด (Loading requirement) — จาก buyer</label>
-            <RequirementRows rows={form.loadingRequirementRows} onChange={(rows) => setForm((p) => ({ ...p, loadingRequirementRows: rows }))} presetLabels={LOADING_REQUIREMENT_PRESETS} listId="po-loading-presets" />
+            <LoadingRequirementFields value={form.loadingRequirement} onChange={(v) => setForm((p) => ({ ...p, loadingRequirement: v }))} />
             <div style={{ marginTop: '10px' }}>
               <Input label="Remark" value={form.loadingRequirementRemark} onChange={(e) => setForm((p) => ({ ...p, loadingRequirementRemark: e.target.value }))} />
             </div>
           </div>
           <div>
             <label style={{ fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px' }}>4. การจัดเตรียมเอกสารและภาพถ่าย — จาก buyer</label>
-            <RequirementRows rows={form.documentRequirementRows} onChange={(rows) => setForm((p) => ({ ...p, documentRequirementRows: rows }))} presetLabels={DOCUMENT_REQUIREMENT_PRESETS} listId="po-document-presets" />
+            <DocumentRequirementFields value={form.documentRequirement} onChange={(v) => setForm((p) => ({ ...p, documentRequirement: v }))} />
             <div style={{ marginTop: '10px' }}>
               <Input label="Remark" value={form.documentRequirementRemark} onChange={(e) => setForm((p) => ({ ...p, documentRequirementRemark: e.target.value }))} />
             </div>
@@ -573,11 +570,11 @@ export function POForm() {
 
       {/* Section 4: Signatories */}
       <div style={cardStyle}>
-        <p style={sectionTitle}>4 — ผู้จัดทำ / ผู้ผลิต</p>
+        <p style={sectionTitle}>4 — ผู้จัดทำ / ผู้อนุมัติ</p>
         <div style={grid2}>
           <Input label="ผู้จัดทำ (จะพิมพ์ชื่อนี้ใน PO)" value={form.preparedBy} onChange={(e) => setForm((p) => ({ ...p, preparedBy: e.target.value }))} placeholder="ชื่อผู้จัดทำ" />
           <div>
-            <label style={{ fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '4px' }}>ผู้ผลิต</label>
+            <label style={{ fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '4px' }}>ผู้อนุมัติ</label>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>เว้นว่างไว้สำหรับเซ็นชื่อในเอกสาร ไม่ต้องกรอก</p>
           </div>
         </div>

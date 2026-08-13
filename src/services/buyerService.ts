@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { Buyer, SubCompany } from '../types';
 import type { ContractActor } from './contractService';
+import { emptyLoadingRequirement, emptyDocumentRequirement } from '../utils/poRequirements';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapSubCompany(sc: any): SubCompany {
@@ -29,9 +30,9 @@ function mapBuyer(row: any): Buyer {
     portOfLoading: row.port_of_loading ?? undefined,
     portOfDischarge: row.port_of_discharge ?? undefined,
     incoterm: row.incoterm ?? undefined,
-    loadingRequirementRows: row.loading_requirement_rows ?? [],
+    loadingRequirement: row.loading_requirement_rows ?? emptyLoadingRequirement(),
     loadingRequirementRemark: row.loading_requirement_remark ?? undefined,
-    documentRequirementRows: row.document_requirement_rows ?? [],
+    documentRequirement: row.document_requirement_rows ?? emptyDocumentRequirement(),
     documentRequirementRemark: row.document_requirement_remark ?? undefined,
     hasSubCompanies: row.has_sub_companies ?? false,
     subCompanies: (row.sub_companies ?? []).map(mapSubCompany),
@@ -57,9 +58,9 @@ function buyerBody(buyer: Omit<Buyer, 'id' | 'createdAt' | 'updatedAt' | 'subCom
     port_of_loading: buyer.portOfLoading ?? null,
     port_of_discharge: buyer.portOfDischarge ?? null,
     incoterm: buyer.incoterm ?? null,
-    loading_requirement_rows: buyer.loadingRequirementRows ?? [],
+    loading_requirement_rows: buyer.loadingRequirement ?? emptyLoadingRequirement(),
     loading_requirement_remark: buyer.loadingRequirementRemark ?? null,
-    document_requirement_rows: buyer.documentRequirementRows ?? [],
+    document_requirement_rows: buyer.documentRequirement ?? emptyDocumentRequirement(),
     document_requirement_remark: buyer.documentRequirementRemark ?? null,
     has_sub_companies: buyer.hasSubCompanies,
   };

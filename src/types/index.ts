@@ -40,9 +40,9 @@ export interface Buyer {
   portOfLoading?: string;
   portOfDischarge?: string;
   incoterm?: string;
-  loadingRequirementRows: RequirementRow[];    // PO requirement — loading (ข้อ 3)
+  loadingRequirement: LoadingRequirement;      // PO requirement — loading (ข้อ 3)
   loadingRequirementRemark?: string;
-  documentRequirementRows: RequirementRow[];   // PO requirement — documents (ข้อ 4)
+  documentRequirement: DocumentRequirement;    // PO requirement — documents (ข้อ 4)
   documentRequirementRemark?: string;
   hasSubCompanies: boolean;
   subCompanies: SubCompany[];
@@ -54,12 +54,44 @@ export interface Buyer {
   updatedAt: string;
 }
 
-// ─── PO requirement rows (ข้อกำหนดอื่นๆ) ─────────────────
-// A "รายการ / รายละเอียด" pair, e.g. { label: 'แบรนด์', detail: 'Tian Juan' }.
-export interface RequirementRow {
-  id: string;
-  label: string;
-  detail: string;
+// ─── PO requirement fields (ข้อกำหนดอื่นๆ) — fixed schema, one per topic ──
+export interface ProductSpecDetail {
+  standard: string;            // มาตรฐาน
+  color: string;                // สี (free text, e.g. "กุ้งต้ม 24+")
+  netWeightWidthMm: string;
+  netWeightLengthMm: string;
+  netWeightHeightMm: string;    // น้ำหนัก (Net weight) กว้าง x ยาว x สูง mm
+  boxWeightGrams: string;       // น้ำหนัก (ระบุบนกล่อง) ...กรัม
+  glazePercent: string;         // เคลือบน้ำ ...%
+  glazeMethod: string;          // วิธีเคลือบน้ำ ...
+}
+
+export interface PackingDetail {
+  innerBoxDesc: string;         // กล่องอินเนอร์: กุ้ง...
+  innerBoxCode: string;         // รหัสกล่อง...
+  topLidChecklist: string;      // ฝาบน: กาเครื่องหมายถูกต้องที่ช่อง (free text)
+  topLidStampCode: string;      // stamp code 12 หลัก
+  topLidStampDate: boolean;     // ประทับ Production date รูปแบบ YYYY.MM.DD
+  bottomLidType: 'printed' | 'blank'; // ฝาล่าง: พิมพ์ระบุ / ไม่มีข้อความใดๆ
+  bottomLidDetail: string;      // ใช้เมื่อ bottomLidType === 'printed'
+  outerBoxType: string;         // กล่องนอก: กล่องแบบไหน เช่น ลูกฟูกขาว
+  outerBoxCode: string;
+  outerBoxChecklist: string;    // free text
+  outerBoxStampCode: string;
+  outerBoxDateMatchInner: boolean; // วันผลิต/วันหมดอายุตรงกับกล่องอินเนอร์
+  strapped: boolean;            // เชือกสายรัด: รัด / ไม่รัด
+  strappingColor: string;       // ใช้เมื่อ strapped === true
+  strappingStyle: string;       // ลักษณะการรัด
+}
+
+export interface LoadingRequirement {
+  temperatureRecorder: boolean; // กำหนดใส่ Temperature Recorder ในตู้สินค้า
+}
+
+export interface DocumentRequirement {
+  photoInnerBoxCorrugated: boolean;   // ภาพถ่ายกล่องอินเนอร์และลูกฟูกเมื่อมาถึงโรงงาน
+  inspectionReport: boolean;          // Finished Product Inspection Report ตามแบบฟอร์มลูกค้า
+  loadingReport: boolean;             // รายงานการโหลด (รายการ/วันหมดอายุ/lot/ภาพถ่าย/ตำแหน่ง)
 }
 
 // ─── Brands ──────────────────────────────────────────────
@@ -70,9 +102,9 @@ export interface Brand {
   buyerCode: string;
   productTypes: string[];   // product types this brand can be used for (empty = any)
   packingSizes: string[];   // available packing sizes for this brand
-  productSpecRows: RequirementRow[];    // PO requirement — product spec (ข้อ 1)
+  productSpec: ProductSpecDetail;       // PO requirement — product spec (ข้อ 1)
   productSpecRemark?: string;
-  packingDetailRows: RequirementRow[];  // PO requirement — packing detail (ข้อ 2)
+  packingDetail: PackingDetail;         // PO requirement — packing detail (ข้อ 2)
   packingDetailRemark?: string;
   defaultPacking?: string;  // legacy — kept for backward-compat
   defaultOrigin?: string;
@@ -170,9 +202,9 @@ export interface ProductRequirement {
   id: string;
   productType: string;
   brand?: string;
-  productSpecRows: RequirementRow[];
+  productSpec: ProductSpecDetail;
   productSpecRemark?: string;
-  packingDetailRows: RequirementRow[];
+  packingDetail: PackingDetail;
   packingDetailRemark?: string;
 }
 
@@ -189,9 +221,9 @@ export interface ProductionOrder {
   poDate: string;
   deliveryNote?: string;          // กำหนดส่งมอบ
   productRequirements: ProductRequirement[]; // ข้อ 1-2 per product (default from brand)
-  loadingRequirementRows: RequirementRow[]; // ข้อ 3 (default from buyer)
+  loadingRequirement: LoadingRequirement; // ข้อ 3 (default from buyer)
   loadingRequirementRemark?: string;
-  documentRequirementRows: RequirementRow[]; // ข้อ 4 (default from buyer)
+  documentRequirement: DocumentRequirement; // ข้อ 4 (default from buyer)
   documentRequirementRemark?: string;
   preparedBy?: string;
   approvedBy?: string;

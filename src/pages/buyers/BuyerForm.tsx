@@ -6,11 +6,12 @@ import { useAuth } from '../../hooks/useAuth';
 import type { Buyer, SubCompany } from '../../types';
 import { Button } from '../../components/UI/Button';
 import { Input, Textarea, Select } from '../../components/UI/Input';
-import { RequirementRows } from '../../components/UI/RequirementRows';
+import { LoadingRequirementFields } from '../../components/UI/LoadingRequirementFields';
+import { DocumentRequirementFields } from '../../components/UI/DocumentRequirementFields';
 import { ConfirmModal } from '../../components/UI/Modal';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 import { useResponsive } from '../../hooks/useMediaQuery';
-import { LOADING_REQUIREMENT_PRESETS, DOCUMENT_REQUIREMENT_PRESETS, defaultRowsFrom } from '../../utils/requirementPresets';
+import { emptyLoadingRequirement, emptyDocumentRequirement } from '../../utils/poRequirements';
 
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -36,8 +37,8 @@ export function BuyerForm() {
     code: '', companyName: '', country: '', address: '',
     contactPerson: '', phone: '', email: '',
     paymentTerms: '', portOfLoading: '', portOfDischarge: '', incoterm: '',
-    loadingRequirementRows: defaultRowsFrom(LOADING_REQUIREMENT_PRESETS), loadingRequirementRemark: '',
-    documentRequirementRows: defaultRowsFrom(DOCUMENT_REQUIREMENT_PRESETS), documentRequirementRemark: '',
+    loadingRequirement: emptyLoadingRequirement(), loadingRequirementRemark: '',
+    documentRequirement: emptyDocumentRequirement(), documentRequirementRemark: '',
     hasSubCompanies: false, subCompanies: [],
   });
   const [loadingPage, setLoadingPage] = useState(isEdit);
@@ -53,8 +54,8 @@ export function BuyerForm() {
         const { id: _id, createdAt: _c, updatedAt: _u, ...rest } = existing;
         setForm({
           ...rest,
-          loadingRequirementRows: rest.loadingRequirementRows?.length ? rest.loadingRequirementRows : defaultRowsFrom(LOADING_REQUIREMENT_PRESETS),
-          documentRequirementRows: rest.documentRequirementRows?.length ? rest.documentRequirementRows : defaultRowsFrom(DOCUMENT_REQUIREMENT_PRESETS),
+          loadingRequirement: rest.loadingRequirement ?? emptyLoadingRequirement(),
+          documentRequirement: rest.documentRequirement ?? emptyDocumentRequirement(),
         });
         setLoadingPage(false);
       });
@@ -230,12 +231,7 @@ export function BuyerForm() {
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '-8px', marginBottom: '16px' }}>
             จะถูกดึงไปเติมในใบ Production Order ของลูกค้ารายนี้ (แก้ต่อในแต่ละ PO ได้)
           </p>
-          <RequirementRows
-            rows={form.loadingRequirementRows}
-            onChange={(rows) => setField('loadingRequirementRows', rows)}
-            presetLabels={LOADING_REQUIREMENT_PRESETS}
-            listId="loading-requirement-presets"
-          />
+          <LoadingRequirementFields value={form.loadingRequirement} onChange={(v) => setField('loadingRequirement', v)} />
           <div style={{ marginTop: '14px' }}>
             <Input label="Remark" value={form.loadingRequirementRemark ?? ''} onChange={(e) => setField('loadingRequirementRemark', e.target.value)} placeholder="เช่น สินค้าไซด์ใหญ่วางด้านล่างเพื่อป้องกันปัญหากล่องยุบ" />
           </div>
@@ -246,12 +242,7 @@ export function BuyerForm() {
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '-8px', marginBottom: '16px' }}>
             จะถูกดึงไปเติมในใบ Production Order ของลูกค้ารายนี้ (แก้ต่อในแต่ละ PO ได้)
           </p>
-          <RequirementRows
-            rows={form.documentRequirementRows}
-            onChange={(rows) => setField('documentRequirementRows', rows)}
-            presetLabels={DOCUMENT_REQUIREMENT_PRESETS}
-            listId="document-requirement-presets"
-          />
+          <DocumentRequirementFields value={form.documentRequirement} onChange={(v) => setField('documentRequirement', v)} />
           <div style={{ marginTop: '14px' }}>
             <Input label="Remark" value={form.documentRequirementRemark ?? ''} onChange={(e) => setField('documentRequirementRemark', e.target.value)} placeholder="เช่น ..." />
           </div>

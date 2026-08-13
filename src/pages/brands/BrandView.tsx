@@ -3,10 +3,11 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ChevronLeft, Edit2 } from 'lucide-react';
 import { brandService } from '../../services/brandService';
 import { buyerService } from '../../services/buyerService';
-import type { Brand, Buyer, RequirementRow } from '../../types';
+import type { Brand, Buyer } from '../../types';
 import { Button } from '../../components/UI/Button';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 import { useResponsive } from '../../hooks/useMediaQuery';
+import { formatProductSpecLines, formatPackingDetailLines } from '../../utils/poRequirements';
 
 export function BrandView() {
   const { id } = useParams<{ id: string }>();
@@ -33,14 +34,14 @@ export function BrandView() {
       </div>
     ) : null;
 
-  const RowsBlock = ({ label, rows, remark }: { label: string; rows: RequirementRow[]; remark?: string }) =>
-    (rows.length > 0 || remark) ? (
+  const RowsBlock = ({ label, lines, remark }: { label: string; lines: string[]; remark?: string }) =>
+    (lines.length > 0 || remark) ? (
       <div style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
         <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
-        {rows.length > 0 && (
+        {lines.length > 0 && (
           <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-            {rows.map((r) => (
-              <div key={r.id} style={{ fontSize: '13px' }}><strong>{r.label || '—'}:</strong> {r.detail || '—'}</div>
+            {lines.map((line, i) => (
+              <div key={i} style={{ fontSize: '13px' }}>{line}</div>
             ))}
           </div>
         )}
@@ -71,8 +72,8 @@ export function BrandView() {
         <Row label="Product Types" value={brand.productTypes?.length ? brand.productTypes.join(', ') : 'ทุกประเภท'} />
         <Row label="Packing Sizes" value={brand.packingSizes?.length ? brand.packingSizes.join(', ') : brand.defaultPacking} />
         <Row label="Default Origin" value={brand.defaultOrigin} />
-        <RowsBlock label="PO ข้อ 1 — Product Spec" rows={brand.productSpecRows} remark={brand.productSpecRemark} />
-        <RowsBlock label="PO ข้อ 2 — Packing Detail" rows={brand.packingDetailRows} remark={brand.packingDetailRemark} />
+        <RowsBlock label="PO ข้อ 1 — Product Spec" lines={formatProductSpecLines(brand.productSpec)} remark={brand.productSpecRemark} />
+        <RowsBlock label="PO ข้อ 2 — Packing Detail" lines={formatPackingDetailLines(brand.packingDetail)} remark={brand.packingDetailRemark} />
         <Row label="Notes" value={brand.notes} />
         <div style={{ padding: '10px 0', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '140px 1fr', gap: isMobile ? '2px' : '12px' }}>
           <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Created</span>

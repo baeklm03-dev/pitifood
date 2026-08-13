@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ChevronLeft, Edit2, Building2, Phone, Mail, MapPin, CreditCard, Ship, Anchor } from 'lucide-react';
 import { buyerService } from '../../services/buyerService';
-import type { Buyer, RequirementRow } from '../../types';
+import type { Buyer } from '../../types';
 import { Button } from '../../components/UI/Button';
 import { Badge } from '../../components/UI/Badge';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 import { useResponsive } from '../../hooks/useMediaQuery';
+import { formatLoadingRequirementLines, formatDocumentRequirementLines } from '../../utils/poRequirements';
 
 export function BuyerView() {
   const { id } = useParams<{ id: string }>();
@@ -33,14 +34,14 @@ export function BuyerView() {
       </div>
     ) : null;
 
-  const RowsBlock = ({ label, rows, remark }: { label: string; rows: RequirementRow[]; remark?: string }) =>
-    (rows.length > 0 || remark) ? (
+  const RowsBlock = ({ label, lines, remark }: { label: string; lines: string[]; remark?: string }) =>
+    (lines.length > 0 || remark) ? (
       <div style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
         <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</span>
-        {rows.length > 0 && (
+        {lines.length > 0 && (
           <div style={{ marginTop: '6px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-            {rows.map((r) => (
-              <div key={r.id} style={{ fontSize: '13px' }}><strong>{r.label || '—'}:</strong> {r.detail || '—'}</div>
+            {lines.map((line, i) => (
+              <div key={i} style={{ fontSize: '13px' }}>{line}</div>
             ))}
           </div>
         )}
@@ -126,8 +127,8 @@ export function BuyerView() {
       )}
 
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
-        <RowsBlock label="PO ข้อ 3 — Loading Requirement" rows={buyer.loadingRequirementRows} remark={buyer.loadingRequirementRemark} />
-        <RowsBlock label="PO ข้อ 4 — Document Requirement" rows={buyer.documentRequirementRows} remark={buyer.documentRequirementRemark} />
+        <RowsBlock label="PO ข้อ 3 — Loading Requirement" lines={formatLoadingRequirementLines(buyer.loadingRequirement)} remark={buyer.loadingRequirementRemark} />
+        <RowsBlock label="PO ข้อ 4 — Document Requirement" lines={formatDocumentRequirementLines(buyer.documentRequirement)} remark={buyer.documentRequirementRemark} />
       </div>
     </div>
   );

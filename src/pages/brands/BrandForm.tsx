@@ -8,10 +8,11 @@ import type { Brand, Buyer } from '../../types';
 import { PRODUCT_TYPES } from '../../utils/productTypes';
 import { Button } from '../../components/UI/Button';
 import { Input, Textarea, Select } from '../../components/UI/Input';
-import { RequirementRows } from '../../components/UI/RequirementRows';
+import { ProductSpecFields } from '../../components/UI/ProductSpecFields';
+import { PackingDetailFields } from '../../components/UI/PackingDetailFields';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 import { useResponsive } from '../../hooks/useMediaQuery';
-import { PRODUCT_SPEC_PRESETS, PACKING_DETAIL_PRESETS, defaultRowsFrom } from '../../utils/requirementPresets';
+import { emptyProductSpec, emptyPackingDetail } from '../../utils/poRequirements';
 
 interface FormErrors {
   brandName?: string;
@@ -31,8 +32,8 @@ export function BrandForm() {
   const [form, setForm] = useState<BrandData>({
     brandName: '', buyerId: '', buyerCode: '',
     productTypes: [], packingSizes: [],
-    productSpecRows: defaultRowsFrom(PRODUCT_SPEC_PRESETS), productSpecRemark: '',
-    packingDetailRows: defaultRowsFrom(PACKING_DETAIL_PRESETS), packingDetailRemark: '',
+    productSpec: emptyProductSpec(), productSpecRemark: '',
+    packingDetail: emptyPackingDetail(), packingDetailRemark: '',
     defaultPacking: '', defaultOrigin: 'Thailand', notes: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
@@ -53,9 +54,9 @@ export function BrandForm() {
           packingSizes: existing.packingSizes?.length
             ? existing.packingSizes
             : (existing.defaultPacking ? [existing.defaultPacking] : []),
-          productSpecRows: existing.productSpecRows?.length ? existing.productSpecRows : defaultRowsFrom(PRODUCT_SPEC_PRESETS),
+          productSpec: existing.productSpec ?? emptyProductSpec(),
           productSpecRemark: existing.productSpecRemark ?? '',
-          packingDetailRows: existing.packingDetailRows?.length ? existing.packingDetailRows : defaultRowsFrom(PACKING_DETAIL_PRESETS),
+          packingDetail: existing.packingDetail ?? emptyPackingDetail(),
           packingDetailRemark: existing.packingDetailRemark ?? '',
           defaultPacking: existing.defaultPacking ?? '',
           defaultOrigin: existing.defaultOrigin ?? 'Thailand',
@@ -237,15 +238,9 @@ export function BrandForm() {
         <div style={cardStyle}>
           <p style={sectionTitle}>PO — รายละเอียดสินค้า (ข้อ 1)</p>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '-8px', marginBottom: '16px' }}>
-            จะถูกดึงไปเติมในใบ Production Order ของแบรนด์นี้ (แก้ต่อในแต่ละ PO ได้) — พิมพ์ "แบรนด์" เป็นชื่อรายการเพื่อดึงชื่อแบรนด์ด้านบนมาเติมอัตโนมัติ
+            จะถูกดึงไปเติมในใบ Production Order ของแบรนด์นี้ (แก้ต่อในแต่ละ PO ได้)
           </p>
-          <RequirementRows
-            rows={form.productSpecRows}
-            onChange={(rows) => setForm((p) => ({ ...p, productSpecRows: rows }))}
-            presetLabels={PRODUCT_SPEC_PRESETS}
-            brandName={form.brandName}
-            listId="product-spec-presets"
-          />
+          <ProductSpecFields value={form.productSpec} onChange={(v) => setForm((p) => ({ ...p, productSpec: v }))} />
           <div style={{ marginTop: '14px' }}>
             <Input label="Remark (ข้อควรระวัง)" value={form.productSpecRemark ?? ''} onChange={(e) => setField('productSpecRemark', e.target.value)} placeholder="เช่น ข้อกำหนดซัลไฟล์ไม่เกินปริมาณข้อกำหนดไต้หวัน" />
           </div>
@@ -254,15 +249,9 @@ export function BrandForm() {
         <div style={cardStyle}>
           <p style={sectionTitle}>PO — รายละเอียดและข้อกำหนดบรรจุภัณฑ์ (ข้อ 2)</p>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '-8px', marginBottom: '16px' }}>
-            จะถูกดึงไปเติมในใบ Production Order ของแบรนด์นี้ (แก้ต่อในแต่ละ PO ได้) — พิมพ์ "แบรนด์" เป็นชื่อรายการเพื่อดึงชื่อแบรนด์ด้านบนมาเติมอัตโนมัติ
+            จะถูกดึงไปเติมในใบ Production Order ของแบรนด์นี้ (แก้ต่อในแต่ละ PO ได้)
           </p>
-          <RequirementRows
-            rows={form.packingDetailRows}
-            onChange={(rows) => setForm((p) => ({ ...p, packingDetailRows: rows }))}
-            presetLabels={PACKING_DETAIL_PRESETS}
-            brandName={form.brandName}
-            listId="packing-detail-presets"
-          />
+          <PackingDetailFields fieldId="brand-packing-detail" value={form.packingDetail} onChange={(v) => setForm((p) => ({ ...p, packingDetail: v }))} />
           <div style={{ marginTop: '14px' }}>
             <Input label="Remark" value={form.packingDetailRemark ?? ''} onChange={(e) => setField('packingDetailRemark', e.target.value)} placeholder="เช่น รายละเอียด Stamp ตาม packaging specification No. ..." />
           </div>

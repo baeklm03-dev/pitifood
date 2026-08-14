@@ -1,15 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Edit2, Printer, Upload, RefreshCw, FileText, Lock } from 'lucide-react';
+import { Plus, Search, Edit2, Printer, Upload, FileUp, RefreshCw, FileText, Lock } from 'lucide-react';
 import { contractService } from '../../services/contractService';
+import { buyerService } from '../../services/buyerService';
 import { generateRevisionContractNo } from '../../utils/contractNumber';
 import { formatShipment } from '../../utils/shipment';
-import type { SaleContract, ContractStatus } from '../../types';
+import { useAuth } from '../../hooks/useAuth';
+import type { SaleContract, ContractStatus, Buyer } from '../../types';
 import { Button } from '../../components/UI/Button';
 import { Badge } from '../../components/UI/Badge';
+import { Input, Select } from '../../components/UI/Input';
 import { Modal, ConfirmModal } from '../../components/UI/Modal';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 import { useResponsive } from '../../hooks/useMediaQuery';
+
+const TODAY = new Date().toISOString().split('T')[0];
 
 const fmtDate = (d?: string) =>
   d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -28,7 +33,9 @@ const statusLabel: Record<ContractStatus, string> = {
 export function ContractList() {
   const navigate = useNavigate();
   const { isMobile } = useResponsive();
+  const { user } = useAuth();
   const [contracts, setContracts] = useState<SaleContract[]>([]);
+  const [buyers, setBuyers] = useState<Buyer[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [search, setSearch] = useState('');
@@ -44,6 +51,12 @@ export function ContractList() {
   const [rewriteTarget, setRewriteTarget] = useState<SaleContract | null>(null);
   const [rewriting, setRewriting] = useState(false);
 
+  const [importOpen, setImportOpen] = useState(false);
+  const [importForm, setImportForm] = useState({ contractNo: '', buyerId: '', offerDate: TODAY });
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+
   const load = useCallback(() => {
     contractService.getAll()
       .then(setContracts)
@@ -51,6 +64,7 @@ export function ContractList() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { buyerService.getAll().then(setBuyers); }, []);
 
   const availableYears = Array.from(new Set(
     contracts.map((c) => { const m = c.contractNo.match(/-(\d{2})\d{2}/); return m ? `20${m[1]}` : ''; }).filter(Boolean)
@@ -108,6 +122,54 @@ export function ContractList() {
     }
   };
 
+  const openImport = () => {
+    setImportForm({ contractNo: '', buyerId: '', offerDate: TODAY });
+    setImportFile(null);
+    setImportError(null);
+    setImportOpen(true);
+  };
+
+  // Creates a minimal, already-locked record for a contract that existed before this
+  // system (paper/Excel) — no product lines are required. Its contractNo counts toward
+  // generateContractNo's per-buyer sequence, so newly generated numbers continue on from it.
+  const handleImportConfirm = async () => {
+    const contractNo = importForm.contractNo.trim();
+    const buyer = buyers.find((b) => b.id === importForm.buyerId);
+    if (!contractNo || !buyer) {
+      setImportError('กรอกเลขที่ contract และเลือกลูกค้า');
+      return;
+    }
+    setImporting(true);
+    setImportError(null);
+    try {
+      const actor = user ? { id: user.id, name: user.fullName } : undefined;
+      const created = await contractService.create({
+        contractNo,
+        buyerId: buyer.id,
+        buyerCode: buyer.code,
+        buyerName: buyer.companyName,
+        offerDate: importForm.offerDate || TODAY,
+        paymentTerms: buyer.paymentTerms ?? '',
+        productLines: [],
+        signatories: [],
+        status: 'finalized',
+        isLocked: false,
+        revision: 0,
+      }, actor);
+
+      if (importFile) {
+        await contractService.uploadSignedFile(created.id, importFile);
+      }
+
+      setImportOpen(false);
+      load();
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Import failed');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const thStyle: React.CSSProperties = {
     padding: '10px 12px', textAlign: 'left', fontSize: '11px', fontWeight: 600,
     color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase',
@@ -122,6 +184,10 @@ export function ContractList() {
   };
 
   const buyerOptions = Array.from(new Set(contracts.map((c) => c.buyerCode))).sort();
+  const importBuyerOptions = buyers
+    .slice()
+    .sort((a, b) => a.code.localeCompare(b.code))
+    .map((b) => ({ value: b.id, label: `${b.code} — ${b.companyName}` }));
 
   if (loading) return <LoadingSpinner message="Loading contracts..." fullPage={false} />;
 
@@ -134,7 +200,10 @@ export function ContractList() {
             {filtered.length} of {contracts.length} contract{contracts.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Button onClick={() => navigate('/contracts/new')}><Plus size={14} /> New Contract</Button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Button variant="secondary" onClick={openImport}><FileUp size={14} /> Import Old Contract</Button>
+          <Button onClick={() => navigate('/contracts/new')}><Plus size={14} /> New Contract</Button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -294,6 +363,60 @@ export function ContractList() {
           <p style={{ fontSize: '11px', color: 'var(--danger)', fontWeight: 500 }}>
             ⚠ This action is irreversible. The contract will be locked and can only be rewritten as a new revision.
           </p>
+        </div>
+      </Modal>
+
+      {/* Import Old Contract Modal */}
+      <Modal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        title="Import Old Contract"
+        width={460}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setImportOpen(false)}>Cancel</Button>
+            <Button loading={importing} onClick={handleImportConfirm} disabled={!importForm.contractNo.trim() || !importForm.buyerId}>
+              <FileUp size={14} /> Import
+            </Button>
+          </>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+            สำหรับ contract เก่าที่มีอยู่ก่อนสร้างระบบนี้ — กรอกเลขที่ contract เดิมและแนบไฟล์ (ถ้ามี)
+            เพื่อให้เลขที่ contract ใหม่ที่ระบบรันอัตโนมัติต่อจากนี้ถูกต้อง
+          </p>
+          <Input
+            label="เลขที่ Contract เดิม *"
+            value={importForm.contractNo}
+            onChange={(e) => setImportForm((p) => ({ ...p, contractNo: e.target.value }))}
+            placeholder="เช่น A01-2412"
+          />
+          <Select
+            label="ลูกค้า *"
+            value={importForm.buyerId}
+            onChange={(e) => setImportForm((p) => ({ ...p, buyerId: e.target.value }))}
+            options={importBuyerOptions}
+            placeholder="— เลือกลูกค้า —"
+          />
+          <Input
+            label="วันที่ (Offer Date)"
+            type="date"
+            value={importForm.offerDate}
+            onChange={(e) => setImportForm((p) => ({ ...p, offerDate: e.target.value }))}
+          />
+          <div style={{ border: '2px dashed var(--border)', borderRadius: 'var(--radius)', padding: '24px', textAlign: 'center', background: 'var(--bg)' }}>
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" id="import-file-input" style={{ display: 'none' }} onChange={(e) => setImportFile(e.target.files?.[0] ?? null)} />
+            <label htmlFor="import-file-input" style={{ cursor: 'pointer' }}>
+              <FileUp size={24} style={{ color: 'var(--text-muted)', display: 'block', margin: '0 auto 8px' }} />
+              {importFile ? (
+                <span style={{ color: 'var(--success)', fontWeight: 500, fontSize: '13px' }}>✓ {importFile.name}</span>
+              ) : (
+                <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>แนบไฟล์ contract เดิม (ไม่บังคับ)</span>
+              )}
+            </label>
+          </div>
+          {importError && <p style={{ fontSize: '12px', color: 'var(--danger)' }}>{importError}</p>}
         </div>
       </Modal>
 

@@ -129,14 +129,31 @@ export function ContractList() {
     setImportOpen(true);
   };
 
+  // Contract numbers are formatted "{buyerCode}-{YY}{NN}" (e.g. "A01-2501") — the buyer
+  // is derivable from the text the admin is already typing, so they only need to fill in
+  // the contract number and the buyer auto-fills instead of being a second required field.
+  const matchBuyerFromContractNo = (contractNo: string): Buyer | undefined => {
+    const code = contractNo.split('-')[0]?.trim().toUpperCase();
+    return code ? buyers.find((b) => b.code === code) : undefined;
+  };
+
+  const handleImportContractNoChange = (contractNo: string) => {
+    const matched = matchBuyerFromContractNo(contractNo);
+    setImportForm((p) => ({ ...p, contractNo, buyerId: matched ? matched.id : p.buyerId }));
+  };
+
   // Creates a minimal, already-locked record for a contract that existed before this
   // system (paper/Excel) — no product lines are required. Its contractNo counts toward
   // generateContractNo's per-buyer sequence, so newly generated numbers continue on from it.
   const handleImportConfirm = async () => {
     const contractNo = importForm.contractNo.trim();
-    const buyer = buyers.find((b) => b.id === importForm.buyerId);
-    if (!contractNo || !buyer) {
-      setImportError('กรอกเลขที่ contract และเลือกลูกค้า');
+    if (!contractNo) {
+      setImportError('กรอกเลขที่ contract');
+      return;
+    }
+    const buyer = buyers.find((b) => b.id === importForm.buyerId) ?? matchBuyerFromContractNo(contractNo);
+    if (!buyer) {
+      setImportError(`ไม่พบลูกค้ารหัส "${contractNo.split('-')[0]}" ในระบบ — กรุณาเลือกลูกค้าเอง`);
       return;
     }
     setImporting(true);
@@ -375,7 +392,7 @@ export function ContractList() {
         footer={
           <>
             <Button variant="ghost" onClick={() => setImportOpen(false)}>Cancel</Button>
-            <Button loading={importing} onClick={handleImportConfirm} disabled={!importForm.contractNo.trim() || !importForm.buyerId}>
+            <Button loading={importing} onClick={handleImportConfirm} disabled={!importForm.contractNo.trim()}>
               <FileUp size={14} /> Import
             </Button>
           </>
@@ -383,22 +400,25 @@ export function ContractList() {
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            สำหรับ contract เก่าที่มีอยู่ก่อนสร้างระบบนี้ — กรอกเลขที่ contract เดิมและแนบไฟล์ (ถ้ามี)
+            สำหรับ contract เก่าที่มีอยู่ก่อนสร้างระบบนี้ — กรอกแค่เลขที่ contract เดิม (ระบบจะเลือกลูกค้าให้อัตโนมัติจากรหัสในเลข contract)
             เพื่อให้เลขที่ contract ใหม่ที่ระบบรันอัตโนมัติต่อจากนี้ถูกต้อง
           </p>
           <Input
             label="เลขที่ Contract เดิม *"
             value={importForm.contractNo}
-            onChange={(e) => setImportForm((p) => ({ ...p, contractNo: e.target.value }))}
+            onChange={(e) => handleImportContractNoChange(e.target.value)}
             placeholder="เช่น A01-2412"
           />
-          <Select
-            label="ลูกค้า *"
-            value={importForm.buyerId}
-            onChange={(e) => setImportForm((p) => ({ ...p, buyerId: e.target.value }))}
-            options={importBuyerOptions}
-            placeholder="— เลือกลูกค้า —"
-          />
+          <div>
+            <Select
+              label="ลูกค้า"
+              value={importForm.buyerId}
+              onChange={(e) => setImportForm((p) => ({ ...p, buyerId: e.target.value }))}
+              options={importBuyerOptions}
+              placeholder="— เลือกลูกค้า —"
+            />
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>เลือกอัตโนมัติจากเลข contract — แก้ได้ถ้าไม่ตรง</span>
+          </div>
           <Input
             label="วันที่ (Offer Date)"
             type="date"

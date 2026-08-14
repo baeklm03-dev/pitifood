@@ -234,6 +234,10 @@ export function ContractPrint() {
             const groupWeight = group.lines.reduce((s, p) => s + p.totalWeight, 0);
             const groupAmount = group.lines.reduce((s, p) => s + p.totalAmount, 0);
             const brandLabel = group.brand ? ` "${group.brand}"` : '';
+            // Unit price is quoted per the row's size unit (USD/kg or USD/lb) — headers
+            // must follow it instead of always reading "kg". Net weight (Quantity(n.w))
+            // stays in kg regardless, since it's always entered as kg per carton.
+            const priceUnit = group.lines[0]?.sizeUnit === 'Lb' ? 'lb' : 'kg';
             return (
               <div key={group.productType + group.brand + gi} style={{ marginBottom: '4pt' }}>
                 <div style={{ fontWeight: 600, fontSize: '8.5pt', marginBottom: '2pt' }}>
@@ -245,7 +249,7 @@ export function ContractPrint() {
                   </colgroup>
                   <thead>
                     <tr>
-                      <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Size/kg</th>
+                      <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Size/{priceUnit}</th>
                       <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Packing</th>
                       <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Quantity</th>
                       <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Quantity(n.w)</th>
@@ -257,7 +261,7 @@ export function ContractPrint() {
                       <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>{contract.packingStyle || ''}</th>
                       <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>ctns</th>
                       <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>kg</th>
-                      <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>USD/kg</th>
+                      <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>USD/{priceUnit}</th>
                       <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>USD</th>
                     </tr>
                   </thead>

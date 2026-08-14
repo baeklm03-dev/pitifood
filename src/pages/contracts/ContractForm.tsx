@@ -45,7 +45,8 @@ interface PRow {
   id: string;
   productType: string;
   customProductType: string;
-  size: string;
+  size: string;       // selected size, or OTHER sentinel
+  customSize: string; // used when size === OTHER
   sizeUnit: 'kg' | 'Lb';
   brand: string;
   packing: string;       // selected packing size, or OTHER sentinel
@@ -87,7 +88,7 @@ function emptyRow(brands: Brand[], productType: string = PRODUCT_TYPES[0]): PRow
   const parsed = parsePackingNetWeightKg(packing);
   return {
     id: uid(), productType, customProductType: '',
-    size: '', sizeUnit: 'kg',
+    size: '', customSize: '', sizeUnit: 'kg',
     brand: brand?.brandName ?? '', packing, customPacking: '',
     quantity: '', netWeightPerCarton: parsed !== null ? String(parsed) : '', unitPrice: '',
   };
@@ -123,7 +124,7 @@ function rowToProductLine(row: PRow): ProductLine {
   return {
     id: row.id,
     productType: row.productType === CUSTOM ? row.customProductType : row.productType,
-    size: row.size, sizeUnit: row.sizeUnit, brand: row.brand,
+    size: row.size === OTHER ? row.customSize : row.size, sizeUnit: row.sizeUnit, brand: row.brand,
     packing: row.packing === OTHER ? row.customPacking : row.packing,
     quantity: parseFloat(row.quantity) || 0,
     netWeightPerCarton: parseFloat(row.netWeightPerCarton) || 0,
@@ -137,11 +138,14 @@ function productLineToRow(pl: ProductLine, brands: Brand[]): PRow {
   const brand = brands.find((b) => b.brandName === pl.brand);
   const sizes = brand?.packingSizes ?? [];
   const packingIsOther = pl.packing !== '' && !sizes.includes(pl.packing);
+  const sizeIsOther = pl.size !== '' && !SIZES.includes(pl.size);
   return {
     id: pl.id,
     productType: isCustom ? CUSTOM : pl.productType,
     customProductType: isCustom ? pl.productType : '',
-    size: pl.size, sizeUnit: pl.sizeUnit, brand: pl.brand,
+    size: sizeIsOther ? OTHER : pl.size,
+    customSize: sizeIsOther ? pl.size : '',
+    sizeUnit: pl.sizeUnit, brand: pl.brand,
     packing: packingIsOther ? OTHER : pl.packing,
     customPacking: packingIsOther ? pl.packing : '',
     quantity: pl.quantity > 0 ? String(pl.quantity) : '',
@@ -597,10 +601,18 @@ export function ContractForm() {
                             )}
                           </td>
                           <td style={{ padding: '4px 6px', minWidth: '80px' }}>
-                            <select value={row.size} onChange={(e) => setRow(row.id, { size: e.target.value })} style={cellInput}>
+                            <select
+                              value={row.size}
+                              onChange={(e) => setRow(row.id, { size: e.target.value, customSize: e.target.value === OTHER ? row.customSize : '' })}
+                              style={{ ...cellInput, marginBottom: row.size === OTHER ? '4px' : '0' }}
+                            >
                               <option value="">— Select —</option>
                               {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+                              <option value={OTHER}>Custom</option>
                             </select>
+                            {row.size === OTHER && (
+                              <input value={row.customSize} onChange={(e) => setRow(row.id, { customSize: e.target.value })} placeholder="Size" style={cellInput} />
+                            )}
                           </td>
                           <td style={{ padding: '4px 6px', minWidth: '60px' }}>
                             <select value={row.sizeUnit} onChange={(e) => setRow(row.id, { sizeUnit: e.target.value as 'kg' | 'Lb' })} style={cellInput}>

@@ -201,7 +201,7 @@ export function ContractList() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <Button variant="secondary" onClick={openImport}><FileUp size={14} /> Import Old Contract</Button>
+          <Button variant="secondary" onClick={openImport}><FileUp size={14} /> Import Contract</Button>
           <Button onClick={() => navigate('/contracts/new')}><Plus size={14} /> New Contract</Button>
         </div>
       </div>
@@ -366,11 +366,11 @@ export function ContractList() {
         </div>
       </Modal>
 
-      {/* Import Old Contract Modal */}
+      {/* Import Contract Modal */}
       <Modal
         open={importOpen}
         onClose={() => setImportOpen(false)}
-        title="Import Old Contract"
+        title="Import Contract"
         width={460}
         footer={
           <>

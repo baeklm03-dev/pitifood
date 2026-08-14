@@ -44,6 +44,7 @@ export interface Buyer {
   loadingRequirementRemark?: string;
   documentRequirement: DocumentRequirement;    // PO requirement — documents (ข้อ 4)
   documentRequirementRemark?: string;
+  productTypeNameOverrides?: Record<string, string>; // per-buyer commodity name overrides, keyed by product type code
   hasSubCompanies: boolean;
   subCompanies: SubCompany[];
   createdById?: string;

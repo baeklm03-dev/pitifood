@@ -93,18 +93,20 @@ function emptyRow(brands: Brand[], productType: string = PRODUCT_TYPES[0]): PRow
   };
 }
 
-// Groups product-line rows by their resolved product type (custom text if CUSTOM),
-// preserving first-seen order — mirrors ContractPrint's grouping so the edit form
-// and the printed document read the same way.
-function groupRowsByProduct(rows: PRow[]): { key: string; rows: PRow[] }[] {
+// Groups product-line rows by resolved product type (custom text if CUSTOM) + brand,
+// preserving first-seen order — mirrors ContractPrint's grouping so the edit form and
+// the printed document read the same way. Same product type but different brand stays
+// as separate groups instead of merging into one table.
+function groupRowsByProduct(rows: PRow[]): { key: string; productType: string; brand: string; rows: PRow[] }[] {
   const order: string[] = [];
-  const map = new Map<string, PRow[]>();
+  const map = new Map<string, { productType: string; brand: string; rows: PRow[] }>();
   rows.forEach((r) => {
-    const key = r.productType === CUSTOM ? (r.customProductType.trim() || '— unnamed —') : r.productType;
-    if (!map.has(key)) { map.set(key, []); order.push(key); }
-    map.get(key)!.push(r);
+    const productType = r.productType === CUSTOM ? (r.customProductType.trim() || '— unnamed —') : r.productType;
+    const key = `${productType}|${r.brand}`;
+    if (!map.has(key)) { map.set(key, { productType, brand: r.brand, rows: [] }); order.push(key); }
+    map.get(key)!.rows.push(r);
   });
-  return order.map((key) => ({ key, rows: map.get(key)! }));
+  return order.map((key) => ({ key, ...map.get(key)! }));
 }
 
 function computeRow(row: PRow) {
@@ -566,8 +568,8 @@ export function ContractForm() {
           return (
             <div key={group.key + gi} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', marginBottom: '14px', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
-                <span style={{ fontSize: '12.5px', fontWeight: 600 }}>{gi + 1}. {group.key}</span>
-                <Button size="sm" variant="ghost" onClick={() => addRowToGroup(group.key)}><Plus size={12} /> Add Row</Button>
+                <span style={{ fontSize: '12.5px', fontWeight: 600 }}>{gi + 1}. {group.productType}{group.brand ? ` "${group.brand}"` : ''}</span>
+                <Button size="sm" variant="ghost" onClick={() => addRowToGroup(group.productType)}><Plus size={12} /> Add Row</Button>
               </div>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '960px', fontSize: '12px' }}>

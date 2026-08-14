@@ -7,6 +7,7 @@ import { contractService } from '../../services/contractService';
 import { buyerService } from '../../services/buyerService';
 import type { Buyer, ProductLine, SaleContract } from '../../types';
 import { formatShipment } from '../../utils/shipment';
+import { getProductFullName } from '../../utils/productTypes';
 import { Button } from '../../components/UI/Button';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 import { useResponsive } from '../../hooks/useMediaQuery';
@@ -43,17 +44,21 @@ const DISCLAIMER =
 
 interface ProductGroup {
   productType: string;
+  brand: string;
   lines: ProductLine[];
 }
 
+// Groups by product type + brand — same product type but a different brand stays as a
+// separate group instead of merging into one table.
 function groupByProductType(lines: ProductLine[]): ProductGroup[] {
   const order: string[] = [];
-  const map = new Map<string, ProductLine[]>();
+  const map = new Map<string, ProductGroup>();
   lines.forEach((p) => {
-    if (!map.has(p.productType)) { map.set(p.productType, []); order.push(p.productType); }
-    map.get(p.productType)!.push(p);
+    const key = `${p.productType}|${p.brand}`;
+    if (!map.has(key)) { map.set(key, { productType: p.productType, brand: p.brand, lines: [] }); order.push(key); }
+    map.get(key)!.lines.push(p);
   });
-  return order.map((productType) => ({ productType, lines: map.get(productType)! }));
+  return order.map((key) => map.get(key)!);
 }
 
 export function ContractPrint() {
@@ -228,12 +233,11 @@ export function ContractPrint() {
             const groupQty = group.lines.reduce((s, p) => s + p.quantity, 0);
             const groupWeight = group.lines.reduce((s, p) => s + p.totalWeight, 0);
             const groupAmount = group.lines.reduce((s, p) => s + p.totalAmount, 0);
-            const groupBrands = Array.from(new Set(group.lines.map((p) => p.brand).filter(Boolean)));
-            const brandLabel = groupBrands.length ? ` "${groupBrands.join(', ')}"` : '';
+            const brandLabel = group.brand ? ` "${group.brand}"` : '';
             return (
-              <div key={group.productType + gi} style={{ marginBottom: '4pt' }}>
+              <div key={group.productType + group.brand + gi} style={{ marginBottom: '4pt' }}>
                 <div style={{ fontWeight: 600, fontSize: '8.5pt', marginBottom: '2pt' }}>
-                  {gi + 1}.&nbsp;&nbsp;{group.productType}{brandLabel}
+                  {gi + 1}.&nbsp;&nbsp;{getProductFullName(group.productType, buyer?.productTypeNameOverrides)}{brandLabel}
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                   <colgroup>

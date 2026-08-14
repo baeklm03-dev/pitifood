@@ -12,6 +12,7 @@ import { ConfirmModal } from '../../components/UI/Modal';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 import { useResponsive } from '../../hooks/useMediaQuery';
 import { emptyLoadingRequirement, emptyDocumentRequirement } from '../../utils/poRequirements';
+import { PRODUCT_TYPES, PRODUCT_TYPE_FULL_NAMES } from '../../utils/productTypes';
 
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -39,6 +40,7 @@ export function BuyerForm() {
     paymentTerms: '', portOfLoading: '', portOfDischarge: '', incoterm: '',
     loadingRequirement: emptyLoadingRequirement(), loadingRequirementRemark: '',
     documentRequirement: emptyDocumentRequirement(), documentRequirementRemark: '',
+    productTypeNameOverrides: {},
     hasSubCompanies: false, subCompanies: [],
   });
   const [loadingPage, setLoadingPage] = useState(isEdit);
@@ -67,6 +69,15 @@ export function BuyerForm() {
     if (errors[key as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [key]: undefined }));
     }
+  };
+
+  // Keeps the override map sparse — an emptied field removes its key rather than storing ''.
+  const setProductTypeNameOverride = (productType: string, value: string) => {
+    setForm((prev) => {
+      const next = { ...(prev.productTypeNameOverrides ?? {}) };
+      if (value) next[productType] = value; else delete next[productType];
+      return { ...prev, productTypeNameOverrides: next };
+    });
   };
 
   const validate = (): boolean => {
@@ -245,6 +256,25 @@ export function BuyerForm() {
           <DocumentRequirementFields value={form.documentRequirement} onChange={(v) => setField('documentRequirement', v)} />
           <div style={{ marginTop: '14px' }}>
             <Input label="Remark" value={form.documentRequirementRemark ?? ''} onChange={(e) => setField('documentRequirementRemark', e.target.value)} placeholder="เช่น ..." />
+          </div>
+        </div>
+
+        <div style={cardStyle}>
+          <p style={sectionTitle}>ชื่อเต็มสินค้า (Contract / PO)</p>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '-8px', marginBottom: '16px' }}>
+            ชื่อที่พิมพ์ใน Sale Contract และ PO ของลูกค้ารายนี้ — เว้นว่างไว้เพื่อใช้ชื่อ default
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {PRODUCT_TYPES.map((pt) => (
+              <div key={pt} style={grid2}>
+                <div style={{ fontSize: '12.5px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center' }}>{pt}</div>
+                <Input
+                  value={form.productTypeNameOverrides?.[pt] ?? ''}
+                  onChange={(e) => setProductTypeNameOverride(pt, e.target.value)}
+                  placeholder={PRODUCT_TYPE_FULL_NAMES[pt]}
+                />
+              </div>
+            ))}
           </div>
         </div>
 

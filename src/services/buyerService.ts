@@ -34,6 +34,7 @@ function mapBuyer(row: any): Buyer {
     loadingRequirementRemark: row.loading_requirement_remark ?? undefined,
     documentRequirement: row.document_requirement_rows ?? emptyDocumentRequirement(),
     documentRequirementRemark: row.document_requirement_remark ?? undefined,
+    productTypeNameOverrides: row.product_type_name_overrides ?? undefined,
     hasSubCompanies: row.has_sub_companies ?? false,
     subCompanies: (row.sub_companies ?? []).map(mapSubCompany),
     createdById: row.created_by_id ?? undefined,
@@ -62,6 +63,7 @@ function buyerBody(buyer: Omit<Buyer, 'id' | 'createdAt' | 'updatedAt' | 'subCom
     loading_requirement_remark: buyer.loadingRequirementRemark ?? null,
     document_requirement_rows: buyer.documentRequirement ?? emptyDocumentRequirement(),
     document_requirement_remark: buyer.documentRequirementRemark ?? null,
+    product_type_name_overrides: buyer.productTypeNameOverrides ?? {},
     has_sub_companies: buyer.hasSubCompanies,
   };
 }

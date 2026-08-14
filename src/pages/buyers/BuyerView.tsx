@@ -129,6 +129,10 @@ export function BuyerView() {
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
         <RowsBlock label="PO ข้อ 3 — Loading Requirement" lines={formatLoadingRequirementLines(buyer.loadingRequirement)} remark={buyer.loadingRequirementRemark} />
         <RowsBlock label="PO ข้อ 4 — Document Requirement" lines={formatDocumentRequirementLines(buyer.documentRequirement)} remark={buyer.documentRequirementRemark} />
+        <RowsBlock
+          label="ชื่อเต็มสินค้า (Override)"
+          lines={Object.entries(buyer.productTypeNameOverrides ?? {}).map(([pt, name]) => `${pt}: ${name}`)}
+        />
       </div>
     </div>
   );

@@ -4,9 +4,11 @@ import { FileDown, ChevronLeft, Edit2 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { poService } from '../../services/poService';
-import type { ProductionOrder, POLine } from '../../types';
+import { buyerService } from '../../services/buyerService';
+import type { ProductionOrder, POLine, Buyer } from '../../types';
 import { formatDateTH } from '../../utils/thaiDate';
 import { formatProductSpecLines, formatPackingDetailLines, formatLoadingRequirementLines, formatDocumentRequirementLines } from '../../utils/poRequirements';
+import { getProductFullName } from '../../utils/productTypes';
 import { Button } from '../../components/UI/Button';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 import { useResponsive } from '../../hooks/useMediaQuery';
@@ -42,13 +44,13 @@ interface LineSpanGroup { span: number; label: string; }
 
 // For consecutive lines sharing the same product+brand, only the first line gets a
 // visible entry (with the merged rowSpan); the label replaces the old row-number column.
-function computeLineSpanGroups(lines: POLine[]): (LineSpanGroup | null)[] {
+function computeLineSpanGroups(lines: POLine[], overrides?: Record<string, string>): (LineSpanGroup | null)[] {
   const result: (LineSpanGroup | null)[] = new Array(lines.length).fill(null);
   let i = 0;
   while (i < lines.length) {
     let span = 1;
     while (i + span < lines.length && lines[i + span].productType === lines[i].productType && (lines[i + span].brand ?? '') === (lines[i].brand ?? '')) span++;
-    const label = `${lines[i].productType}${lines[i].brand ? ` "${lines[i].brand}"` : ''}`;
+    const label = `${getProductFullName(lines[i].productType, overrides)}${lines[i].brand ? ` "${lines[i].brand}"` : ''}`;
     result[i] = { span, label };
     i += span;
   }
@@ -57,20 +59,20 @@ function computeLineSpanGroups(lines: POLine[]): (LineSpanGroup | null)[] {
 
 interface ReqSectionEntry { label: string; lines: string[]; }
 
-function collectSpecEntries(groups: LineGroup[], po: ProductionOrder): ReqSectionEntry[] {
+function collectSpecEntries(groups: LineGroup[], po: ProductionOrder, overrides?: Record<string, string>): ReqSectionEntry[] {
   return groups
     .map((g) => {
       const pr = po.productRequirements.find((p) => p.productType === g.productType && (p.brand ?? '') === (g.brand ?? ''));
-      return { label: `${g.productType}${g.brand ? ` "${g.brand}"` : ''}`, lines: pr ? formatProductSpecLines(pr.productSpec) : [] };
+      return { label: `${getProductFullName(g.productType, overrides)}${g.brand ? ` "${g.brand}"` : ''}`, lines: pr ? formatProductSpecLines(pr.productSpec) : [] };
     })
     .filter((e) => e.lines.length > 0);
 }
 
-function collectPackingEntries(groups: LineGroup[], po: ProductionOrder): ReqSectionEntry[] {
+function collectPackingEntries(groups: LineGroup[], po: ProductionOrder, overrides?: Record<string, string>): ReqSectionEntry[] {
   return groups
     .map((g) => {
       const pr = po.productRequirements.find((p) => p.productType === g.productType && (p.brand ?? '') === (g.brand ?? ''));
-      return { label: `${g.productType}${g.brand ? ` "${g.brand}"` : ''}`, lines: pr ? formatPackingDetailLines(pr.packingDetail) : [] };
+      return { label: `${getProductFullName(g.productType, overrides)}${g.brand ? ` "${g.brand}"` : ''}`, lines: pr ? formatPackingDetailLines(pr.packingDetail) : [] };
     })
     .filter((e) => e.lines.length > 0);
 }
@@ -104,6 +106,7 @@ export function POPrint() {
   const { isMobile } = useResponsive();
 
   const [po, setPo] = useState<ProductionOrder | null>(null);
+  const [buyer, setBuyer] = useState<Buyer | null>(null);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
@@ -113,6 +116,7 @@ export function POPrint() {
     poService.getById(id).then((p) => {
       if (!p) { navigate('/po'); return; }
       setPo(p);
+      return p.buyerId ? buyerService.getById(p.buyerId).then(setBuyer) : undefined;
     }).finally(() => setLoading(false));
   }, [id, navigate]);
 
@@ -124,10 +128,11 @@ export function POPrint() {
     { ctn: 0, kg: 0, stock: 0, add: 0 }
   );
 
+  const overrides = buyer?.productTypeNameOverrides;
   const groups = groupLines(po.lines);
-  const spanGroups = computeLineSpanGroups(po.lines);
-  const specEntries = collectSpecEntries(groups, po);
-  const packingEntries = collectPackingEntries(groups, po);
+  const spanGroups = computeLineSpanGroups(po.lines, overrides);
+  const specEntries = collectSpecEntries(groups, po, overrides);
+  const packingEntries = collectPackingEntries(groups, po, overrides);
   const loadingLines = formatLoadingRequirementLines(po.loadingRequirement);
   const documentLines = formatDocumentRequirementLines(po.documentRequirement);
 

@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { Brand } from '../types';
 import type { ContractActor } from './contractService';
-import { emptyProductSpec, emptyPackingDetail } from '../utils/poRequirements';
+import { normalizeProductSpec, normalizePackingDetail } from '../utils/poRequirements';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapBrand(row: any): Brand {
@@ -12,9 +12,9 @@ function mapBrand(row: any): Brand {
     buyerCode: row.buyer_code,
     productTypes: row.product_types ?? [],
     packingSizes: row.packing_sizes ?? [],
-    productSpec: row.product_spec_rows ?? emptyProductSpec(),
+    productSpec: normalizeProductSpec(row.product_spec_rows),
     productSpecRemark: row.product_spec_remark ?? undefined,
-    packingDetail: row.packing_detail_rows ?? emptyPackingDetail(),
+    packingDetail: normalizePackingDetail(row.packing_detail_rows),
     packingDetailRemark: row.packing_detail_remark ?? undefined,
     defaultPacking: row.default_packing ?? undefined,
     defaultOrigin: row.default_origin ?? undefined,
@@ -35,9 +35,9 @@ function brandBody(brand: Omit<Brand, 'id' | 'createdAt' | 'updatedAt' | 'create
     buyer_code: brand.buyerCode,
     product_types: brand.productTypes ?? [],
     packing_sizes: brand.packingSizes ?? [],
-    product_spec_rows: brand.productSpec ?? emptyProductSpec(),
+    product_spec_rows: brand.productSpec,
     product_spec_remark: brand.productSpecRemark ?? null,
-    packing_detail_rows: brand.packingDetail ?? emptyPackingDetail(),
+    packing_detail_rows: brand.packingDetail,
     packing_detail_remark: brand.packingDetailRemark ?? null,
     default_packing: brand.defaultPacking ?? null,
     default_origin: brand.defaultOrigin ?? null,

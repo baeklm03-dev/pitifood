@@ -394,7 +394,7 @@ export function POPrint() {
           )}
 
           {/* Signatures — one line: preparer's name shown directly, approver left blank to sign */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '16pt', marginBottom: '10pt', fontSize: '8.5pt' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'baseline', gap: '60pt', marginTop: '16pt', marginBottom: '10pt', fontSize: '8.5pt' }}>
             <div>ผู้จัดทำ &nbsp;{po.preparedBy || ' '}</div>
             <div style={{ display: 'flex', alignItems: 'baseline' }}>
               <span>ผู้อนุมัติ</span>

@@ -1,7 +1,20 @@
 import { supabase } from '../lib/supabase';
-import type { ProductionOrder, POLine } from '../types';
+import type { ProductionOrder, POLine, ProductRequirement } from '../types';
 import type { ContractActor } from './contractService';
-import { normalizeRequirementItems } from '../utils/poRequirements';
+import { normalizeRequirementItems, normalizeProductSpec, normalizePackingDetail } from '../utils/poRequirements';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapProductRequirement(raw: any): ProductRequirement {
+  return {
+    id: typeof raw?.id === 'string' ? raw.id : '',
+    productType: raw?.productType ?? '',
+    brand: raw?.brand ?? undefined,
+    productSpec: normalizeProductSpec(raw?.productSpec),
+    productSpecRemark: raw?.productSpecRemark ?? undefined,
+    packingDetail: normalizePackingDetail(raw?.packingDetail),
+    packingDetailRemark: raw?.packingDetailRemark ?? undefined,
+  };
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapLine(l: any): POLine {
@@ -38,7 +51,7 @@ function mapPO(row: any): ProductionOrder {
     attn: row.attn ?? undefined,
     poDate: row.po_date,
     deliveryNote: row.delivery_note ?? undefined,
-    productRequirements: row.product_requirements ?? [],
+    productRequirements: (row.product_requirements ?? []).map(mapProductRequirement),
     loadingRequirement: normalizeRequirementItems(row.loading_requirement_rows),
     loadingRequirementRemark: row.loading_requirement_remark ?? undefined,
     documentRequirement: normalizeRequirementItems(row.document_requirement_rows),

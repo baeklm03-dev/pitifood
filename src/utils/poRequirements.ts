@@ -82,6 +82,85 @@ export function cloneRequirementItems(items: RequirementItem[]): RequirementItem
   return items.map((item) => ({ ...item, id: uid() }));
 }
 
+// Backward-compat adapter for ProductSpecDetail — old rows may still carry the removed
+// netWeightWidthMm/LengthMm/HeightMm fields instead of today's shape; those are simply dropped.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function normalizeProductSpec(raw: any): ProductSpecDetail {
+  const base = emptyProductSpec();
+  if (!raw || typeof raw !== 'object') return base;
+  return {
+    standard: typeof raw.standard === 'string' ? raw.standard : base.standard,
+    color: typeof raw.color === 'string' ? raw.color : base.color,
+    netWeightGrams: typeof raw.netWeightGrams === 'string' ? raw.netWeightGrams : base.netWeightGrams,
+    boxWeightGrams: typeof raw.boxWeightGrams === 'string' ? raw.boxWeightGrams : base.boxWeightGrams,
+    afterGlazeWeightGrams: typeof raw.afterGlazeWeightGrams === 'string' ? raw.afterGlazeWeightGrams : base.afterGlazeWeightGrams,
+    glazePercent: typeof raw.glazePercent === 'string' ? raw.glazePercent : base.glazePercent,
+    glazeMethod: typeof raw.glazeMethod === 'string' ? raw.glazeMethod : base.glazeMethod,
+    extraItems: normalizeRequirementItems(raw.extraItems ?? []),
+  };
+}
+
+// Converts the old fixed ฝาบน/ฝาล่าง/outer-box fields (checklist text + stamp code + a
+// boolean or two) into equivalent list items, so admins who already filled those in in an
+// earlier session don't silently lose that text when the row is next opened.
+function legacyTopLidItems(checklist?: string, stampCode?: string, stampDate?: boolean): RequirementItem[] {
+  const items: RequirementItem[] = [];
+  if (checklist) items.push({ id: uid(), checked: true, text: `กาเครื่องหมายถูกต้องที่ช่อง: ${checklist}` });
+  if (stampCode) items.push({ id: uid(), checked: true, text: `stamp code ${stampCode}` });
+  if (stampDate) items.push({ id: uid(), checked: true, text: 'stamp Production date : YYYY.MM.DD' });
+  return items;
+}
+
+function legacyBottomLidItems(bottomLidType?: string, bottomLidDetail?: string): RequirementItem[] {
+  if (bottomLidType === 'printed') return [{ id: uid(), checked: true, text: `พิมพ์ระบุ${bottomLidDetail ? ` ${bottomLidDetail}` : ''}` }];
+  if (bottomLidType === 'blank') return [{ id: uid(), checked: true, text: 'ไม่มีข้อความใดๆ' }];
+  return [];
+}
+
+function legacyOuterBoxItems(checklist?: string, stampCode?: string, dateMatchInner?: boolean): RequirementItem[] {
+  const items: RequirementItem[] = [];
+  if (checklist) items.push({ id: uid(), checked: true, text: `กาเครื่องหมายถูกต้องที่ช่อง: ${checklist}` });
+  if (stampCode) items.push({ id: uid(), checked: true, text: `stamp code ${stampCode}` });
+  if (dateMatchInner) items.push({ id: uid(), checked: true, text: 'วันผลิตและวันหมดอายุตรงกับกล่องอินเนอร์' });
+  return items;
+}
+
+// Backward-compat adapter for PackingDetail — old rows may carry the removed fixed fields
+// (topLidChecklist/topLidStampCode/topLidStampDate, bottomLidType/bottomLidDetail,
+// outerBoxType, outerBoxChecklist/outerBoxStampCode/outerBoxDateMatchInner) instead of today's
+// topLidItems/bottomLidItems/outerBoxDesc/outerBoxItems. Without this, PackingDetailFields and
+// buildPackingDetailBlock would call .map/.filter on undefined and crash the PO/Brand pages.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function normalizePackingDetail(raw: any): PackingDetail {
+  const base = emptyPackingDetail();
+  if (!raw || typeof raw !== 'object') return base;
+  return {
+    innerBoxDesc: typeof raw.innerBoxDesc === 'string' ? raw.innerBoxDesc : base.innerBoxDesc,
+    innerBoxWidthMm: typeof raw.innerBoxWidthMm === 'string' ? raw.innerBoxWidthMm : base.innerBoxWidthMm,
+    innerBoxLengthMm: typeof raw.innerBoxLengthMm === 'string' ? raw.innerBoxLengthMm : base.innerBoxLengthMm,
+    innerBoxHeightMm: typeof raw.innerBoxHeightMm === 'string' ? raw.innerBoxHeightMm : base.innerBoxHeightMm,
+    innerBoxCode: typeof raw.innerBoxCode === 'string' ? raw.innerBoxCode : base.innerBoxCode,
+    topLidItems: Array.isArray(raw.topLidItems)
+      ? normalizeRequirementItems(raw.topLidItems)
+      : legacyTopLidItems(raw.topLidChecklist, raw.topLidStampCode, raw.topLidStampDate),
+    bottomLidItems: Array.isArray(raw.bottomLidItems)
+      ? normalizeRequirementItems(raw.bottomLidItems)
+      : legacyBottomLidItems(raw.bottomLidType, raw.bottomLidDetail),
+    outerBoxDesc: typeof raw.outerBoxDesc === 'string' ? raw.outerBoxDesc : (typeof raw.outerBoxType === 'string' ? raw.outerBoxType : base.outerBoxDesc),
+    outerBoxWidthMm: typeof raw.outerBoxWidthMm === 'string' ? raw.outerBoxWidthMm : base.outerBoxWidthMm,
+    outerBoxLengthMm: typeof raw.outerBoxLengthMm === 'string' ? raw.outerBoxLengthMm : base.outerBoxLengthMm,
+    outerBoxHeightMm: typeof raw.outerBoxHeightMm === 'string' ? raw.outerBoxHeightMm : base.outerBoxHeightMm,
+    outerBoxCode: typeof raw.outerBoxCode === 'string' ? raw.outerBoxCode : base.outerBoxCode,
+    outerBoxItems: Array.isArray(raw.outerBoxItems)
+      ? normalizeRequirementItems(raw.outerBoxItems)
+      : legacyOuterBoxItems(raw.outerBoxChecklist, raw.outerBoxStampCode, raw.outerBoxDateMatchInner),
+    strapped: Boolean(raw.strapped),
+    strappingColor: typeof raw.strappingColor === 'string' ? raw.strappingColor : '',
+    strappingStyle: typeof raw.strappingStyle === 'string' ? raw.strappingStyle : '',
+    extraItems: normalizeRequirementItems(raw.extraItems ?? []),
+  };
+}
+
 // Formats each section's structured fields as flowing text lines, skipping fields that
 // were never filled in — used by both the PO print layout and the Brand/Buyer read-only
 // view pages so the two never drift apart.

@@ -26,3 +26,14 @@ export function generateRevisionContractNo(
   const priorRevisions = existingContracts.filter((c) => c.contractNo.startsWith(`${baseNo} rev.`));
   return `${baseNo} rev.${priorRevisions.length + 1}`;
 }
+
+// Proforma Invoice copies reuse the source contract's number with a " PI.N" suffix and are
+// numbered independently of Rewrite revisions — they don't consume or share the rev. sequence.
+export function generateProformaInvoiceNo(
+  sourceContract: SaleContract,
+  existingContracts: SaleContract[]
+): string {
+  const baseNo = sourceContract.contractNo.split(' rev.')[0].split(' PI.')[0];
+  const priorPI = existingContracts.filter((c) => c.contractNo.startsWith(`${baseNo} PI.`));
+  return `${baseNo} PI.${priorPI.length + 1}`;
+}

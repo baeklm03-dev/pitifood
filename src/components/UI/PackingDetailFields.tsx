@@ -1,32 +1,52 @@
 import React from 'react';
 import type { PackingDetail } from '../../types';
 import { Input } from './Input';
+import { BoxCodeInput } from './BoxCodeInput';
+import { RequirementChecklist } from './RequirementChecklist';
+import { composeInnerBoxLine, composeOuterBoxLine, type BoxLineContext } from '../../utils/poRequirements';
 
 interface Props {
   value: PackingDetail;
   onChange: (next: PackingDetail) => void;
   /** Unique per rendered instance — this form can appear multiple times on one page (one per product group). */
   fieldId: string;
+  buyerCode: string;
+  productType: string;
+  brand: string;
+  netWeightGrams: string;
 }
 
-export function PackingDetailFields({ value, onChange, fieldId }: Props) {
+const mmInput: React.CSSProperties = { width: '70px' };
+
+export function PackingDetailFields({ value, onChange, fieldId, buyerCode, productType, brand, netWeightGrams }: Props) {
   const set = <K extends keyof PackingDetail>(key: K, v: PackingDetail[K]) =>
     onChange({ ...value, [key]: v });
 
   const groupLabel: React.CSSProperties = { fontSize: '12.5px', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: '8px' };
-  const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' };
   const block: React.CSSProperties = { paddingTop: '12px', borderTop: '1px dashed var(--border)' };
   const checkboxLabel: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer', fontSize: '12.5px' };
   const radioLabel: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12.5px' };
+  const sizeRow: React.CSSProperties = { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' };
+  const previewStyle: React.CSSProperties = { fontSize: '11.5px', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '6px' };
+
+  const ctx: BoxLineContext = { productType, brand, netWeightGrams };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
       <div>
-        <label style={groupLabel}>กล่องอินเนอร์</label>
-        <div style={grid2}>
-          <Input value={value.innerBoxDesc} onChange={(e) => set('innerBoxDesc', e.target.value)} placeholder="เช่น กุ้ง PDTO" />
-          <Input value={value.innerBoxCode} onChange={(e) => set('innerBoxCode', e.target.value)} placeholder="รหัสกล่อง" />
+        <label style={groupLabel}>กล่องอินเนอร์ — ขนาด กว้าง x ยาว x สูง (mm)</label>
+        <div style={sizeRow}>
+          <Input type="number" value={value.innerBoxWidthMm} onChange={(e) => set('innerBoxWidthMm', e.target.value)} placeholder="กว้าง" style={mmInput} />
+          <span style={{ color: 'var(--text-muted)' }}>x</span>
+          <Input type="number" value={value.innerBoxLengthMm} onChange={(e) => set('innerBoxLengthMm', e.target.value)} placeholder="ยาว" style={mmInput} />
+          <span style={{ color: 'var(--text-muted)' }}>x</span>
+          <Input type="number" value={value.innerBoxHeightMm} onChange={(e) => set('innerBoxHeightMm', e.target.value)} placeholder="สูง" style={mmInput} />
+          <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>mm</span>
         </div>
+        <div style={{ marginTop: '8px' }}>
+          <BoxCodeInput label="รหัสกล่องอินเนอร์" prefix="I" buyerCode={buyerCode} value={value.innerBoxCode} onChange={(v) => set('innerBoxCode', v)} />
+        </div>
+        <p style={previewStyle}>2.1 {composeInnerBoxLine(value, ctx)}</p>
       </div>
 
       <div style={block}>
@@ -61,12 +81,18 @@ export function PackingDetailFields({ value, onChange, fieldId }: Props) {
       </div>
 
       <div style={block}>
-        <label style={groupLabel}>กล่องนอก</label>
+        <label style={groupLabel}>กล่องนอก — ขนาด กว้าง x ยาว x สูง (mm)</label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={grid2}>
-            <Input value={value.outerBoxType} onChange={(e) => set('outerBoxType', e.target.value)} placeholder="เช่น ลูกฟูกขาว" />
-            <Input value={value.outerBoxCode} onChange={(e) => set('outerBoxCode', e.target.value)} placeholder="รหัสกล่อง" />
+          <div style={sizeRow}>
+            <Input type="number" value={value.outerBoxWidthMm} onChange={(e) => set('outerBoxWidthMm', e.target.value)} placeholder="กว้าง" style={mmInput} />
+            <span style={{ color: 'var(--text-muted)' }}>x</span>
+            <Input type="number" value={value.outerBoxLengthMm} onChange={(e) => set('outerBoxLengthMm', e.target.value)} placeholder="ยาว" style={mmInput} />
+            <span style={{ color: 'var(--text-muted)' }}>x</span>
+            <Input type="number" value={value.outerBoxHeightMm} onChange={(e) => set('outerBoxHeightMm', e.target.value)} placeholder="สูง" style={mmInput} />
+            <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>mm</span>
           </div>
+          <BoxCodeInput label="รหัสกล่องนอก" prefix="M" buyerCode={buyerCode} value={value.outerBoxCode} onChange={(v) => set('outerBoxCode', v)} />
+          <p style={previewStyle}>2.2 {composeOuterBoxLine(value, ctx)}</p>
           <Input value={value.outerBoxChecklist} onChange={(e) => set('outerBoxChecklist', e.target.value)} placeholder="กาเครื่องหมายถูกต้องที่ช่อง — เช่น size" />
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
             <Input value={value.outerBoxStampCode} onChange={(e) => set('outerBoxStampCode', e.target.value)} placeholder="stamp code (12 หลัก)" style={{ maxWidth: '200px' }} />
@@ -96,6 +122,11 @@ export function PackingDetailFields({ value, onChange, fieldId }: Props) {
             </>
           )}
         </div>
+      </div>
+
+      <div style={block}>
+        <label style={groupLabel}>ข้อกำหนดเพิ่มเติม (custom) — เช่น แผ่นรองพลาสติก, ตาราง barcode</label>
+        <RequirementChecklist items={value.extraItems ?? []} onChange={(v) => set('extraItems', v)} />
       </div>
     </div>
   );

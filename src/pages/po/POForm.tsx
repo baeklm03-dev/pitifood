@@ -9,14 +9,13 @@ import { useAuth } from '../../hooks/useAuth';
 import { useResponsive } from '../../hooks/useMediaQuery';
 import { generatePoNo } from '../../utils/poNumber';
 import { formatDeliveryNoteTH } from '../../utils/deliveryNote';
-import { emptyProductSpec, emptyPackingDetail, emptyLoadingRequirement, emptyDocumentRequirement } from '../../utils/poRequirements';
+import { emptyProductSpec, emptyPackingDetail, emptyLoadingRequirement, emptyDocumentRequirement, cloneRequirementItems } from '../../utils/poRequirements';
 import type { SaleContract, Buyer, Brand, ProductionOrder, POLine, POStatus, ProductSpecDetail, PackingDetail, LoadingRequirement, DocumentRequirement, ProductRequirement } from '../../types';
 import { Button } from '../../components/UI/Button';
 import { Input } from '../../components/UI/Input';
 import { ProductSpecFields } from '../../components/UI/ProductSpecFields';
 import { PackingDetailFields } from '../../components/UI/PackingDetailFields';
-import { LoadingRequirementFields } from '../../components/UI/LoadingRequirementFields';
-import { DocumentRequirementFields } from '../../components/UI/DocumentRequirementFields';
+import { RequirementChecklist } from '../../components/UI/RequirementChecklist';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 
 function uid() {
@@ -269,9 +268,9 @@ export function POForm() {
       attn: DEFAULT_PO_ATTN,
       deliveryNote,
       productRequirements,
-      loadingRequirement: buyer?.loadingRequirement ?? emptyLoadingRequirement(),
+      loadingRequirement: buyer ? cloneRequirementItems(buyer.loadingRequirement) : emptyLoadingRequirement(),
       loadingRequirementRemark: buyer?.loadingRequirementRemark ?? '',
-      documentRequirement: buyer?.documentRequirement ?? emptyDocumentRequirement(),
+      documentRequirement: buyer ? cloneRequirementItems(buyer.documentRequirement) : emptyDocumentRequirement(),
       documentRequirementRemark: buyer?.documentRequirementRemark ?? '',
       rows,
     }));
@@ -527,6 +526,7 @@ export function POForm() {
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>ข้อ 1-2 — แยกตามสินค้า/แบรนด์ในรายการสินค้าด้านบน (ดึงจาก brand โดยอัตโนมัติ)</span>
           {lineGroups.map((g, i) => {
             const pr = getRequirement(g.productType, g.brand);
+            const buyerCode = selectedContract?.buyerCode ?? brands.find((b) => b.brandName === g.brand)?.buyerCode ?? '';
             return (
               <div key={`${g.productType}|${g.brand}`} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '14px', background: 'var(--bg)' }}>
                 <div style={{ fontWeight: 600, fontSize: '13px', marginBottom: '12px' }}>
@@ -538,7 +538,15 @@ export function POForm() {
                   <Input label="Remark" value={pr.productSpecRemark} onChange={(e) => updateRequirement(g.productType, g.brand, { productSpecRemark: e.target.value })} />
                 </div>
                 <label style={{ fontSize: '12.5px', fontWeight: 500, display: 'block', marginBottom: '6px' }}>{i + 1}.2 รายละเอียดและข้อกำหนดบรรจุภัณฑ์</label>
-                <PackingDetailFields fieldId={`po-packing-detail-${i}`} value={pr.packingDetail} onChange={(v) => updateRequirement(g.productType, g.brand, { packingDetail: v })} />
+                <PackingDetailFields
+                  fieldId={`po-packing-detail-${i}`}
+                  buyerCode={buyerCode}
+                  productType={g.productType}
+                  brand={g.brand}
+                  netWeightGrams={pr.productSpec.netWeightGrams}
+                  value={pr.packingDetail}
+                  onChange={(v) => updateRequirement(g.productType, g.brand, { packingDetail: v })}
+                />
                 <div style={{ marginTop: '8px' }}>
                   <Input label="Remark" value={pr.packingDetailRemark} onChange={(e) => updateRequirement(g.productType, g.brand, { packingDetailRemark: e.target.value })} />
                 </div>
@@ -553,14 +561,14 @@ export function POForm() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div>
             <label style={{ fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px' }}>3. ข้อกำหนดการโหลด (Loading requirement) — จาก buyer</label>
-            <LoadingRequirementFields value={form.loadingRequirement} onChange={(v) => setForm((p) => ({ ...p, loadingRequirement: v }))} />
+            <RequirementChecklist items={form.loadingRequirement} onChange={(v) => setForm((p) => ({ ...p, loadingRequirement: v }))} />
             <div style={{ marginTop: '10px' }}>
               <Input label="Remark" value={form.loadingRequirementRemark} onChange={(e) => setForm((p) => ({ ...p, loadingRequirementRemark: e.target.value }))} />
             </div>
           </div>
           <div>
             <label style={{ fontSize: '13px', fontWeight: 500, display: 'block', marginBottom: '8px' }}>4. การจัดเตรียมเอกสารและภาพถ่าย — จาก buyer</label>
-            <DocumentRequirementFields value={form.documentRequirement} onChange={(v) => setForm((p) => ({ ...p, documentRequirement: v }))} />
+            <RequirementChecklist items={form.documentRequirement} onChange={(v) => setForm((p) => ({ ...p, documentRequirement: v }))} />
             <div style={{ marginTop: '10px' }}>
               <Input label="Remark" value={form.documentRequirementRemark} onChange={(e) => setForm((p) => ({ ...p, documentRequirementRemark: e.target.value }))} />
             </div>

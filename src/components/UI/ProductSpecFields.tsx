@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ProductSpecDetail } from '../../types';
 import { Input } from './Input';
+import { RequirementChecklist } from './RequirementChecklist';
 
 interface Props {
   value: ProductSpecDetail;
@@ -23,26 +24,31 @@ export function ProductSpecFields({ value, onChange }: Props) {
       </div>
 
       <div>
-        <label style={groupLabel}>น้ำหนัก (Net weight) — ขนาด กว้าง x ยาว x สูง (mm)</label>
-        <div style={inlineRow}>
-          <Input type="number" value={value.netWeightWidthMm} onChange={(e) => set('netWeightWidthMm', e.target.value)} placeholder="กว้าง" style={{ width: '90px' }} />
-          <span style={{ color: 'var(--text-muted)' }}>x</span>
-          <Input type="number" value={value.netWeightLengthMm} onChange={(e) => set('netWeightLengthMm', e.target.value)} placeholder="ยาว" style={{ width: '90px' }} />
-          <span style={{ color: 'var(--text-muted)' }}>x</span>
-          <Input type="number" value={value.netWeightHeightMm} onChange={(e) => set('netWeightHeightMm', e.target.value)} placeholder="สูง" style={{ width: '90px' }} />
-          <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>mm</span>
+        <label style={groupLabel}>น้ำหนักและการเคลือบน้ำ</label>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={inlineRow}>
+            <Input type="number" value={value.netWeightGrams} onChange={(e) => set('netWeightGrams', e.target.value)} placeholder="0" style={{ width: '90px' }} />
+            <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>กรัม · N.W. (ก่อนเคลือบน้ำ — ใช้ในหัวข้อ 2.1/2.2 ด้วย)</span>
+          </div>
+          <div style={inlineRow}>
+            <Input type="number" value={value.boxWeightGrams} onChange={(e) => set('boxWeightGrams', e.target.value)} placeholder="0" style={{ width: '90px' }} />
+            <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>กรัม · ระบุบนกล่อง</span>
+          </div>
+          <div style={inlineRow}>
+            <Input value={value.afterGlazeWeightGrams} onChange={(e) => set('afterGlazeWeightGrams', e.target.value)} placeholder="เช่น 1000g+" style={{ width: '110px' }} />
+            <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>หลังเคลือบน้ำ</span>
+          </div>
+          <div style={inlineRow}>
+            <Input type="number" value={value.glazePercent} onChange={(e) => set('glazePercent', e.target.value)} placeholder="0" style={{ width: '70px' }} />
+            <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>% · เคลือบน้ำ (ถ้ามี)</span>
+            <Input value={value.glazeMethod} onChange={(e) => set('glazeMethod', e.target.value)} placeholder="วิธีการเคลือบ" style={{ flex: 1, minWidth: '140px' }} />
+          </div>
         </div>
       </div>
 
       <div>
-        <label style={groupLabel}>น้ำหนัก (ระบุบนกล่อง)</label>
-        <div style={inlineRow}>
-          <Input type="number" value={value.boxWeightGrams} onChange={(e) => set('boxWeightGrams', e.target.value)} placeholder="0" style={{ width: '90px' }} />
-          <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>กรัม · เคลือบน้ำ</span>
-          <Input type="number" value={value.glazePercent} onChange={(e) => set('glazePercent', e.target.value)} placeholder="0" style={{ width: '70px' }} />
-          <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>% · วิธีเคลือบน้ำ</span>
-          <Input value={value.glazeMethod} onChange={(e) => set('glazeMethod', e.target.value)} placeholder="วิธีเคลือบน้ำ" style={{ flex: 1, minWidth: '140px' }} />
-        </div>
+        <label style={groupLabel}>ข้อกำหนดเพิ่มเติม (custom)</label>
+        <RequirementChecklist items={value.extraItems ?? []} onChange={(v) => set('extraItems', v)} />
       </div>
     </div>
   );

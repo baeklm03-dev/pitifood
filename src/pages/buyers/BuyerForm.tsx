@@ -6,12 +6,11 @@ import { useAuth } from '../../hooks/useAuth';
 import type { Buyer, SubCompany } from '../../types';
 import { Button } from '../../components/UI/Button';
 import { Input, Textarea, Select } from '../../components/UI/Input';
-import { LoadingRequirementFields } from '../../components/UI/LoadingRequirementFields';
-import { DocumentRequirementFields } from '../../components/UI/DocumentRequirementFields';
+import { RequirementChecklist } from '../../components/UI/RequirementChecklist';
 import { ConfirmModal } from '../../components/UI/Modal';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 import { useResponsive } from '../../hooks/useMediaQuery';
-import { emptyLoadingRequirement, emptyDocumentRequirement } from '../../utils/poRequirements';
+import { defaultLoadingItems, defaultDocumentItems, emptyLoadingRequirement, emptyDocumentRequirement } from '../../utils/poRequirements';
 import { PRODUCT_TYPES, PRODUCT_TYPE_FULL_NAMES } from '../../utils/productTypes';
 
 function uid() {
@@ -38,8 +37,8 @@ export function BuyerForm() {
     code: '', companyName: '', country: '', address: '',
     contactPerson: '', phone: '', email: '',
     paymentTerms: '', portOfLoading: '', portOfDischarge: '', incoterm: '',
-    loadingRequirement: emptyLoadingRequirement(), loadingRequirementRemark: '',
-    documentRequirement: emptyDocumentRequirement(), documentRequirementRemark: '',
+    loadingRequirement: defaultLoadingItems(), loadingRequirementRemark: '',
+    documentRequirement: defaultDocumentItems(), documentRequirementRemark: '',
     productTypeNameOverrides: {},
     hasSubCompanies: false, subCompanies: [],
   });
@@ -242,7 +241,7 @@ export function BuyerForm() {
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '-8px', marginBottom: '16px' }}>
             จะถูกดึงไปเติมในใบ Production Order ของลูกค้ารายนี้ (แก้ต่อในแต่ละ PO ได้)
           </p>
-          <LoadingRequirementFields value={form.loadingRequirement} onChange={(v) => setField('loadingRequirement', v)} />
+          <RequirementChecklist items={form.loadingRequirement} onChange={(v) => setField('loadingRequirement', v)} />
           <div style={{ marginTop: '14px' }}>
             <Input label="Remark" value={form.loadingRequirementRemark ?? ''} onChange={(e) => setField('loadingRequirementRemark', e.target.value)} placeholder="เช่น สินค้าไซด์ใหญ่วางด้านล่างเพื่อป้องกันปัญหากล่องยุบ" />
           </div>
@@ -253,7 +252,7 @@ export function BuyerForm() {
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '-8px', marginBottom: '16px' }}>
             จะถูกดึงไปเติมในใบ Production Order ของลูกค้ารายนี้ (แก้ต่อในแต่ละ PO ได้)
           </p>
-          <DocumentRequirementFields value={form.documentRequirement} onChange={(v) => setField('documentRequirement', v)} />
+          <RequirementChecklist items={form.documentRequirement} onChange={(v) => setField('documentRequirement', v)} />
           <div style={{ marginTop: '14px' }}>
             <Input label="Remark" value={form.documentRequirementRemark ?? ''} onChange={(e) => setField('documentRequirementRemark', e.target.value)} placeholder="เช่น ..." />
           </div>

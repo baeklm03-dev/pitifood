@@ -147,7 +147,14 @@ export function ContractPrint() {
         <ChevronLeft size={20} />
       </button>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <span style={{ color: '#fff', fontWeight: 600, fontSize: '14px' }}>{contract.contractNo}</span>
+        <span style={{ color: '#fff', fontWeight: 600, fontSize: '14px' }}>
+          {contract.contractNo}
+          {contract.docType === 'proforma_invoice' && (
+            <span style={{ marginLeft: '8px', fontSize: '10px', fontWeight: 600, color: 'var(--primary)', background: '#fff', padding: '2px 6px', borderRadius: '3px', verticalAlign: 'middle' }}>
+              PROFORMA INVOICE
+            </span>
+          )}
+        </span>
         {(contract.createdByName || contract.updatedByName) && (
           <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '11px' }}>
             {contract.createdByName && `Created by ${contract.createdByName}`}
@@ -195,7 +202,9 @@ export function ContractPrint() {
           {/* Header (logo overlaps center, doesn't push content down) */}
           <div style={{ position: 'relative' }}>
             <img src="/logo-notext.png" alt="PITI FOODS" style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', height: '70pt', objectFit: 'contain' }} />
-            <div style={{ fontSize: '18pt', fontWeight: 700, marginBottom: '10pt' }}>Sales Contract</div>
+            <div style={{ fontSize: '18pt', fontWeight: 700, marginBottom: '10pt' }}>
+              {contract.docType === 'proforma_invoice' ? 'Proforma Invoice' : 'Sales Contract'}
+            </div>
             <table style={{ borderCollapse: 'collapse', width: '100%', marginBottom: '10pt' }}>
               <tbody>
                 <tr>

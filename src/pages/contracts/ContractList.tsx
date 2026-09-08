@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Edit2, Printer, Upload, FileUp, RefreshCw, FileText, Lock } from 'lucide-react';
+import { Plus, Search, Edit2, Printer, Upload, FileUp, RefreshCw, FileText, Lock, MoreVertical, FileSignature } from 'lucide-react';
 import { contractService } from '../../services/contractService';
 import { buyerService } from '../../services/buyerService';
-import { generateRevisionContractNo } from '../../utils/contractNumber';
+import { generateRevisionContractNo, generateProformaInvoiceNo } from '../../utils/contractNumber';
+import { extractError } from '../../utils/errors';
 import { formatShipment } from '../../utils/shipment';
 import { useAuth } from '../../hooks/useAuth';
 import type { SaleContract, ContractStatus, Buyer } from '../../types';
@@ -51,6 +52,13 @@ export function ContractList() {
   const [rewriteTarget, setRewriteTarget] = useState<SaleContract | null>(null);
   const [rewriting, setRewriting] = useState(false);
 
+  const [piTarget, setPiTarget] = useState<SaleContract | null>(null);
+  const [piNumber, setPiNumber] = useState('');
+  const [piError, setPiError] = useState<string | null>(null);
+  const [creatingPi, setCreatingPi] = useState(false);
+
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+
   const [importOpen, setImportOpen] = useState(false);
   const [importForm, setImportForm] = useState({ contractNo: '', buyerId: '', offerDate: TODAY });
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -65,6 +73,15 @@ export function ContractList() {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { buyerService.getAll().then(setBuyers); }, []);
+
+  useEffect(() => {
+    if (!menuOpenId) return;
+    const handler = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('[data-row-menu]')) setMenuOpenId(null);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [menuOpenId]);
 
   const availableYears = Array.from(new Set(
     contracts.map((c) => { const m = c.contractNo.match(/-(\d{2})\d{2}/); return m ? `20${m[1]}` : ''; }).filter(Boolean)
@@ -105,6 +122,7 @@ export function ContractList() {
       const revision = await contractService.create({
         ...rewriteTarget,
         contractNo: newNo,
+        docType: 'sale_contract',
         revision: rewriteTarget.revision + 1,
         parentContractId: rewriteTarget.id,
         status: 'draft',
@@ -119,6 +137,45 @@ export function ContractList() {
       console.error('Rewrite failed:', err);
     } finally {
       setRewriting(false);
+    }
+  };
+
+  // Opens the Proforma Invoice modal with an editable, pre-filled document number
+  // ("{source no.} PI.N") so the admin can review or adjust it before creating the copy.
+  const openPi = (c: SaleContract) => {
+    setPiTarget(c);
+    setPiNumber(generateProformaInvoiceNo(c, contracts));
+    setPiError(null);
+  };
+
+  // Creates an editable copy of a signed contract as a Proforma Invoice — a separate
+  // document type numbered independently of Rewrite revisions, so it doesn't touch the
+  // rev. sequence or link as a parent/child revision of the source contract.
+  const handleCreatePi = async () => {
+    if (!piTarget) return;
+    const no = piNumber.trim();
+    if (!no) { setPiError('กรอกเลขที่เอกสาร'); return; }
+    setCreatingPi(true);
+    setPiError(null);
+    try {
+      const pi = await contractService.create({
+        ...piTarget,
+        contractNo: no,
+        docType: 'proforma_invoice',
+        revision: 0,
+        parentContractId: undefined,
+        status: 'draft',
+        isLocked: false,
+        signedFileUrl: undefined,
+        signedFileName: undefined,
+        signedAt: undefined,
+      });
+      setPiTarget(null);
+      navigate(`/contracts/${pi.id}/edit`);
+    } catch (err) {
+      setPiError(extractError(err, 'Failed to create Proforma Invoice'));
+    } finally {
+      setCreatingPi(false);
     }
   };
 
@@ -162,6 +219,7 @@ export function ContractList() {
       const actor = user ? { id: user.id, name: user.fullName } : undefined;
       const created = await contractService.create({
         contractNo,
+        docType: 'sale_contract',
         buyerId: buyer.id,
         buyerCode: buyer.code,
         buyerName: buyer.companyName,
@@ -286,6 +344,7 @@ export function ContractList() {
                           {c.contractNo}
                         </Link>
                         {c.revision > 0 && <span style={{ fontSize: '10px', color: 'var(--accent)', background: '#FEF5E7', padding: '1px 5px', borderRadius: '3px', fontWeight: 600 }}>rev</span>}
+                        {c.docType === 'proforma_invoice' && <span style={{ fontSize: '10px', color: '#2E6DA4', background: '#EBF5FB', padding: '1px 5px', borderRadius: '3px', fontWeight: 600 }}>PI</span>}
                       </div>
                     </td>
                     <td style={tdStyle}>
@@ -331,9 +390,35 @@ export function ContractList() {
                           </Button>
                         )}
                         {c.isLocked && (
-                          <Button variant="ghost" size="sm" onClick={() => setRewriteTarget(c)}>
-                            <RefreshCw size={12} /> Rewrite
-                          </Button>
+                          <div data-row-menu style={{ position: 'relative' }}>
+                            <Button variant="ghost" size="sm" onClick={() => setMenuOpenId(menuOpenId === c.id ? null : c.id)}>
+                              <MoreVertical size={12} />
+                            </Button>
+                            {menuOpenId === c.id && (
+                              <div style={{
+                                position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 20,
+                                background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+                                boxShadow: 'var(--shadow-md)', minWidth: '180px', overflow: 'hidden', padding: '6px',
+                              }}>
+                                <button
+                                  onClick={() => { setMenuOpenId(null); setRewriteTarget(c); }}
+                                  style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '9px 12px', fontSize: '13px', fontWeight: 500, color: 'var(--text)', background: 'none', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', textAlign: 'left' }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg)')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                                >
+                                  <RefreshCw size={14} /> Rewrite
+                                </button>
+                                <button
+                                  onClick={() => { setMenuOpenId(null); openPi(c); }}
+                                  style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '9px 12px', fontSize: '13px', fontWeight: 500, color: 'var(--text)', background: 'none', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', textAlign: 'left' }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg)')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                                >
+                                  <FileSignature size={14} /> Proforma Invoice
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </td>
@@ -449,6 +534,36 @@ export function ContractList() {
         confirmLabel={rewriting ? 'Creating...' : 'Create Revision'}
         confirmVariant="primary"
       />
+
+      {/* Create Proforma Invoice Modal */}
+      <Modal
+        open={!!piTarget}
+        onClose={() => setPiTarget(null)}
+        title="Create Proforma Invoice"
+        width={440}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setPiTarget(null)}>Cancel</Button>
+            <Button loading={creatingPi} onClick={handleCreatePi} disabled={!piNumber.trim()}>
+              <FileSignature size={14} /> Create Proforma Invoice
+            </Button>
+          </>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+            สร้างสำเนาที่แก้ไขได้จาก <strong style={{ color: 'var(--text)' }}>{piTarget?.contractNo}</strong> โดยเปลี่ยนหัวเอกสารเป็น
+            "Proforma Invoice" — แยกอิสระจาก revision ของ Rewrite
+          </p>
+          <Input
+            label="เลขที่เอกสาร Proforma Invoice *"
+            value={piNumber}
+            onChange={(e) => { setPiNumber(e.target.value); setPiError(null); }}
+            placeholder="เช่น A01-2501 PI.1"
+          />
+          {piError && <p style={{ fontSize: '12px', color: 'var(--danger)' }}>{piError}</p>}
+        </div>
+      </Modal>
     </div>
   );
 }

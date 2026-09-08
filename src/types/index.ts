@@ -57,43 +57,50 @@ export interface Buyer {
 
 // ─── PO requirement fields (ข้อกำหนดอื่นๆ) — fixed schema, one per topic ──
 export interface ProductSpecDetail {
-  standard: string;            // มาตรฐาน
-  color: string;                // สี (free text, e.g. "กุ้งต้ม 24+")
-  netWeightWidthMm: string;
-  netWeightLengthMm: string;
-  netWeightHeightMm: string;    // น้ำหนัก (Net weight) กว้าง x ยาว x สูง mm
-  boxWeightGrams: string;       // น้ำหนัก (ระบุบนกล่อง) ...กรัม
-  glazePercent: string;         // เคลือบน้ำ ...%
-  glazeMethod: string;          // วิธีเคลือบน้ำ ...
+  standard: string;              // มาตรฐาน
+  color: string;                 // สี (free text, e.g. "กุ้งต้ม 24+")
+  netWeightGrams: string;        // N.W. (ก่อนเคลือบน้ำ) — reused by the ข้อ 2.1/2.2 box headlines
+  boxWeightGrams: string;        // น้ำหนัก (ระบุบนกล่อง) ...กรัม
+  afterGlazeWeightGrams: string; // หลังเคลือบน้ำ — free text ("1000g+", "1,000g up", ...)
+  glazePercent: string;          // เคลือบน้ำ ...% (alternate way some POs express glazing)
+  glazeMethod: string;           // วิธีการเคลือบ ...
+  extraItems?: RequirementItem[]; // custom numbered sub-items appended after the fixed ones (1.4+)
 }
 
 export interface PackingDetail {
-  innerBoxDesc: string;         // กล่องอินเนอร์: กุ้ง...
-  innerBoxCode: string;         // รหัสกล่อง...
+  innerBoxWidthMm: string;
+  innerBoxLengthMm: string;
+  innerBoxHeightMm: string;     // กล่องอินเนอร์ ขนาด กว้าง x ยาว x สูง mm
+  innerBoxCode: string;         // รหัสกล่อง (I-...) — see BoxCodeInput
   topLidChecklist: string;      // ฝาบน: กาเครื่องหมายถูกต้องที่ช่อง (free text)
   topLidStampCode: string;      // stamp code 12 หลัก
   topLidStampDate: boolean;     // ประทับ Production date รูปแบบ YYYY.MM.DD
   bottomLidType: 'printed' | 'blank'; // ฝาล่าง: พิมพ์ระบุ / ไม่มีข้อความใดๆ
   bottomLidDetail: string;      // ใช้เมื่อ bottomLidType === 'printed'
-  outerBoxType: string;         // กล่องนอก: กล่องแบบไหน เช่น ลูกฟูกขาว
-  outerBoxCode: string;
+  outerBoxWidthMm: string;
+  outerBoxLengthMm: string;
+  outerBoxHeightMm: string;     // กล่องนอก ขนาด กว้าง x ยาว x สูง mm
+  outerBoxCode: string;         // รหัสกล่อง (M-...) — see BoxCodeInput
   outerBoxChecklist: string;    // free text
   outerBoxStampCode: string;
   outerBoxDateMatchInner: boolean; // วันผลิต/วันหมดอายุตรงกับกล่องอินเนอร์
   strapped: boolean;            // เชือกสายรัด: รัด / ไม่รัด
   strappingColor: string;       // ใช้เมื่อ strapped === true
   strappingStyle: string;       // ลักษณะการรัด
+  extraItems?: RequirementItem[]; // custom numbered sub-items appended after the fixed ones (2.5+)
 }
 
-export interface LoadingRequirement {
-  temperatureRecorder: boolean; // กำหนดใส่ Temperature Recorder ในตู้สินค้า
+// Loading requirement (ข้อ 3) and document requirement (ข้อ 4) are free-length checklists —
+// real POs show anywhere from 1 to 5 differently-worded numbered items per section, so both
+// are just an ordered list of lines rather than a fixed set of named booleans.
+export interface RequirementItem {
+  id: string;
+  text: string;
+  checked: boolean; // included on print when true
 }
 
-export interface DocumentRequirement {
-  photoInnerBoxCorrugated: boolean;   // ภาพถ่ายกล่องอินเนอร์และลูกฟูกเมื่อมาถึงโรงงาน
-  inspectionReport: boolean;          // Finished Product Inspection Report ตามแบบฟอร์มลูกค้า
-  loadingReport: boolean;             // รายงานการโหลด (รายการ/วันหมดอายุ/lot/ภาพถ่าย/ตำแหน่ง)
-}
+export type LoadingRequirement = RequirementItem[];
+export type DocumentRequirement = RequirementItem[];
 
 // ─── Brands ──────────────────────────────────────────────
 export interface Brand {
@@ -143,9 +150,12 @@ export interface Signatory {
 
 export type ShipmentPeriod = 'early' | 'mid' | 'late';
 
+export type ContractDocType = 'sale_contract' | 'proforma_invoice';
+
 export interface SaleContract {
   id: string;
   contractNo: string;
+  docType: ContractDocType;
   buyerId: string;
   buyerCode: string;
   buyerName: string;

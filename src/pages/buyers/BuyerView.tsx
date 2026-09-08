@@ -7,7 +7,7 @@ import { Button } from '../../components/UI/Button';
 import { Badge } from '../../components/UI/Badge';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 import { useResponsive } from '../../hooks/useMediaQuery';
-import { formatLoadingRequirementLines, formatDocumentRequirementLines } from '../../utils/poRequirements';
+import { formatRequirementLines } from '../../utils/poRequirements';
 
 export function BuyerView() {
   const { id } = useParams<{ id: string }>();
@@ -127,8 +127,8 @@ export function BuyerView() {
       )}
 
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
-        <RowsBlock label="PO ข้อ 3 — Loading Requirement" lines={formatLoadingRequirementLines(buyer.loadingRequirement)} remark={buyer.loadingRequirementRemark} />
-        <RowsBlock label="PO ข้อ 4 — Document Requirement" lines={formatDocumentRequirementLines(buyer.documentRequirement)} remark={buyer.documentRequirementRemark} />
+        <RowsBlock label="PO ข้อ 3 — Loading Requirement" lines={formatRequirementLines(buyer.loadingRequirement, '3')} remark={buyer.loadingRequirementRemark} />
+        <RowsBlock label="PO ข้อ 4 — Document Requirement" lines={formatRequirementLines(buyer.documentRequirement, '4')} remark={buyer.documentRequirementRemark} />
         <RowsBlock
           label="ชื่อเต็มสินค้า (Override)"
           lines={Object.entries(buyer.productTypeNameOverrides ?? {}).map(([pt, name]) => `${pt}: ${name}`)}

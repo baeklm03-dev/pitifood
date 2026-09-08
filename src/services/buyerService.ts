@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { Buyer, SubCompany } from '../types';
 import type { ContractActor } from './contractService';
-import { emptyLoadingRequirement, emptyDocumentRequirement } from '../utils/poRequirements';
+import { normalizeRequirementItems } from '../utils/poRequirements';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapSubCompany(sc: any): SubCompany {
@@ -30,9 +30,9 @@ function mapBuyer(row: any): Buyer {
     portOfLoading: row.port_of_loading ?? undefined,
     portOfDischarge: row.port_of_discharge ?? undefined,
     incoterm: row.incoterm ?? undefined,
-    loadingRequirement: row.loading_requirement_rows ?? emptyLoadingRequirement(),
+    loadingRequirement: normalizeRequirementItems(row.loading_requirement_rows),
     loadingRequirementRemark: row.loading_requirement_remark ?? undefined,
-    documentRequirement: row.document_requirement_rows ?? emptyDocumentRequirement(),
+    documentRequirement: normalizeRequirementItems(row.document_requirement_rows),
     documentRequirementRemark: row.document_requirement_remark ?? undefined,
     productTypeNameOverrides: row.product_type_name_overrides ?? undefined,
     hasSubCompanies: row.has_sub_companies ?? false,
@@ -59,9 +59,9 @@ function buyerBody(buyer: Omit<Buyer, 'id' | 'createdAt' | 'updatedAt' | 'subCom
     port_of_loading: buyer.portOfLoading ?? null,
     port_of_discharge: buyer.portOfDischarge ?? null,
     incoterm: buyer.incoterm ?? null,
-    loading_requirement_rows: buyer.loadingRequirement ?? emptyLoadingRequirement(),
+    loading_requirement_rows: buyer.loadingRequirement,
     loading_requirement_remark: buyer.loadingRequirementRemark ?? null,
-    document_requirement_rows: buyer.documentRequirement ?? emptyDocumentRequirement(),
+    document_requirement_rows: buyer.documentRequirement,
     document_requirement_remark: buyer.documentRequirementRemark ?? null,
     product_type_name_overrides: buyer.productTypeNameOverrides ?? {},
     has_sub_companies: buyer.hasSubCompanies,

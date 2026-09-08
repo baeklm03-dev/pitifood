@@ -43,6 +43,7 @@ function mapContract(row: any): SaleContract {
   return {
     id: row.id,
     contractNo: row.contract_no,
+    docType: row.doc_type ?? 'sale_contract',
     buyerId: row.buyer_id,
     buyerCode: row.buyer_code,
     buyerName: row.buyer_name,
@@ -109,6 +110,7 @@ export const contractService = {
       .from('sale_contracts')
       .insert({
         contract_no: rest.contractNo,
+        doc_type: rest.docType,
         buyer_id: rest.buyerId,
         buyer_code: rest.buyerCode,
         buyer_name: rest.buyerName,
@@ -179,7 +181,7 @@ export const contractService = {
 
   async update(
     id: string,
-    contract: Omit<SaleContract, 'id' | 'contractNo' | 'revision' | 'parentContractId' | 'createdAt' | 'updatedAt'>,
+    contract: Omit<SaleContract, 'id' | 'contractNo' | 'docType' | 'revision' | 'parentContractId' | 'createdAt' | 'updatedAt'>,
     actor?: ContractActor
   ): Promise<void> {
     const { productLines, signatories, signedFileUrl, signedFileName, signedAt, ...rest } = contract;

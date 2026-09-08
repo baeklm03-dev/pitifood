@@ -7,7 +7,7 @@ import { poService } from '../../services/poService';
 import { buyerService } from '../../services/buyerService';
 import type { ProductionOrder, POLine, Buyer } from '../../types';
 import { formatDateTH } from '../../utils/thaiDate';
-import { formatProductSpecLines, formatPackingDetailLines, formatLoadingRequirementLines, formatDocumentRequirementLines } from '../../utils/poRequirements';
+import { formatProductSpecLines, formatPackingDetailLines, formatRequirementLines } from '../../utils/poRequirements';
 import { getProductFullName } from '../../utils/productTypes';
 import { Button } from '../../components/UI/Button';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
@@ -63,7 +63,7 @@ function collectSpecEntries(groups: LineGroup[], po: ProductionOrder, overrides?
   return groups
     .map((g) => {
       const pr = po.productRequirements.find((p) => p.productType === g.productType && (p.brand ?? '') === (g.brand ?? ''));
-      return { label: `${getProductFullName(g.productType, overrides)}${g.brand ? ` "${g.brand}"` : ''}`, lines: pr ? formatProductSpecLines(pr.productSpec) : [] };
+      return { label: `${getProductFullName(g.productType, overrides)}${g.brand ? ` "${g.brand}"` : ''}`, lines: pr ? formatProductSpecLines(pr.productSpec, '1') : [] };
     })
     .filter((e) => e.lines.length > 0);
 }
@@ -72,7 +72,10 @@ function collectPackingEntries(groups: LineGroup[], po: ProductionOrder, overrid
   return groups
     .map((g) => {
       const pr = po.productRequirements.find((p) => p.productType === g.productType && (p.brand ?? '') === (g.brand ?? ''));
-      return { label: `${getProductFullName(g.productType, overrides)}${g.brand ? ` "${g.brand}"` : ''}`, lines: pr ? formatPackingDetailLines(pr.packingDetail) : [] };
+      return {
+        label: `${getProductFullName(g.productType, overrides)}${g.brand ? ` "${g.brand}"` : ''}`,
+        lines: pr ? formatPackingDetailLines(pr.packingDetail, '2', { productType: g.productType, brand: g.brand ?? '', netWeightGrams: pr.productSpec.netWeightGrams }) : [],
+      };
     })
     .filter((e) => e.lines.length > 0);
 }
@@ -133,8 +136,8 @@ export function POPrint() {
   const spanGroups = computeLineSpanGroups(po.lines, overrides);
   const specEntries = collectSpecEntries(groups, po, overrides);
   const packingEntries = collectPackingEntries(groups, po, overrides);
-  const loadingLines = formatLoadingRequirementLines(po.loadingRequirement);
-  const documentLines = formatDocumentRequirementLines(po.documentRequirement);
+  const loadingLines = formatRequirementLines(po.loadingRequirement, '3');
+  const documentLines = formatRequirementLines(po.documentRequirement, '4');
 
   const remarks: RemarkEntry[] = [];
   po.productRequirements.forEach((pr) => {
@@ -319,10 +322,12 @@ export function POPrint() {
               <div style={{ fontSize: '8pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '4pt' }}>{loadingLines.join('\n')}</div>
             </div>
           )}
-          <div style={{ marginBottom: '6pt' }}>
-            <div style={{ fontWeight: 600, fontSize: '8.5pt' }}>4. การจัดเตรียมเอกสารและภาพถ่าย</div>
-            <div style={{ fontSize: '8pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '4pt' }}>{documentLines.join('\n')}</div>
-          </div>
+          {documentLines.length > 0 && (
+            <div style={{ marginBottom: '6pt' }}>
+              <div style={{ fontWeight: 600, fontSize: '8.5pt' }}>4. การจัดเตรียมเอกสารและภาพถ่าย</div>
+              <div style={{ fontSize: '8pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '4pt' }}>{documentLines.join('\n')}</div>
+            </div>
+          )}
 
           {/* Signatures — left shows the preparer's name (no signing needed), right is a blank signature space */}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16pt', marginBottom: '10pt' }}>

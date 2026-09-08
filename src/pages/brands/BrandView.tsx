@@ -72,8 +72,16 @@ export function BrandView() {
         <Row label="Product Types" value={brand.productTypes?.length ? brand.productTypes.join(', ') : 'ทุกประเภท'} />
         <Row label="Packing Sizes" value={brand.packingSizes?.length ? brand.packingSizes.join(', ') : brand.defaultPacking} />
         <Row label="Default Origin" value={brand.defaultOrigin} />
-        <RowsBlock label="PO ข้อ 1 — Product Spec" lines={formatProductSpecLines(brand.productSpec)} remark={brand.productSpecRemark} />
-        <RowsBlock label="PO ข้อ 2 — Packing Detail" lines={formatPackingDetailLines(brand.packingDetail)} remark={brand.packingDetailRemark} />
+        <RowsBlock label="PO ข้อ 1 — Product Spec" lines={formatProductSpecLines(brand.productSpec, '1')} remark={brand.productSpecRemark} />
+        <RowsBlock
+          label="PO ข้อ 2 — Packing Detail"
+          lines={formatPackingDetailLines(brand.packingDetail, '2', {
+            productType: brand.productTypes?.[0] ?? '',
+            brand: brand.brandName,
+            netWeightGrams: brand.productSpec.netWeightGrams,
+          })}
+          remark={brand.packingDetailRemark}
+        />
         <Row label="Notes" value={brand.notes} />
         <div style={{ padding: '10px 0', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '140px 1fr', gap: isMobile ? '2px' : '12px' }}>
           <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Created</span>

@@ -251,7 +251,15 @@ export function BrandForm() {
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '-8px', marginBottom: '16px' }}>
             จะถูกดึงไปเติมในใบ Production Order ของแบรนด์นี้ (แก้ต่อในแต่ละ PO ได้)
           </p>
-          <PackingDetailFields fieldId="brand-packing-detail" value={form.packingDetail} onChange={(v) => setForm((p) => ({ ...p, packingDetail: v }))} />
+          <PackingDetailFields
+            fieldId="brand-packing-detail"
+            buyerCode={form.buyerCode}
+            productType={form.productTypes[0] ?? 'สินค้า'}
+            brand={form.brandName}
+            netWeightGrams={form.productSpec.netWeightGrams}
+            value={form.packingDetail}
+            onChange={(v) => setForm((p) => ({ ...p, packingDetail: v }))}
+          />
           <div style={{ marginTop: '14px' }}>
             <Input label="Remark" value={form.packingDetailRemark ?? ''} onChange={(e) => setField('packingDetailRemark', e.target.value)} placeholder="เช่น รายละเอียด Stamp ตาม packaging specification No. ..." />
           </div>

@@ -1,7 +1,7 @@
 import { supabase } from '../lib/supabase';
 import type { ProductionOrder, POLine } from '../types';
 import type { ContractActor } from './contractService';
-import { emptyLoadingRequirement, emptyDocumentRequirement } from '../utils/poRequirements';
+import { normalizeRequirementItems } from '../utils/poRequirements';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapLine(l: any): POLine {
@@ -39,9 +39,9 @@ function mapPO(row: any): ProductionOrder {
     poDate: row.po_date,
     deliveryNote: row.delivery_note ?? undefined,
     productRequirements: row.product_requirements ?? [],
-    loadingRequirement: row.loading_requirement_rows ?? emptyLoadingRequirement(),
+    loadingRequirement: normalizeRequirementItems(row.loading_requirement_rows),
     loadingRequirementRemark: row.loading_requirement_remark ?? undefined,
-    documentRequirement: row.document_requirement_rows ?? emptyDocumentRequirement(),
+    documentRequirement: normalizeRequirementItems(row.document_requirement_rows),
     documentRequirementRemark: row.document_requirement_remark ?? undefined,
     preparedBy: row.prepared_by ?? undefined,
     approvedBy: row.approved_by ?? undefined,
@@ -71,9 +71,9 @@ function headerBody(po: Omit<ProductionOrder, 'id' | 'poNo' | 'createdAt' | 'upd
     po_date: po.poDate,
     delivery_note: po.deliveryNote ?? null,
     product_requirements: po.productRequirements ?? [],
-    loading_requirement_rows: po.loadingRequirement ?? emptyLoadingRequirement(),
+    loading_requirement_rows: po.loadingRequirement,
     loading_requirement_remark: po.loadingRequirementRemark ?? null,
-    document_requirement_rows: po.documentRequirement ?? emptyDocumentRequirement(),
+    document_requirement_rows: po.documentRequirement,
     document_requirement_remark: po.documentRequirementRemark ?? null,
     prepared_by: po.preparedBy ?? null,
     approved_by: po.approvedBy ?? null,

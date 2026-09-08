@@ -387,6 +387,7 @@ export function ContractForm() {
 
       const contract = {
         contractNo: no,
+        docType: existingContract?.docType ?? 'sale_contract',
         buyerId: form.buyerId,
         buyerCode: buyer?.code ?? '',
         buyerName: buyer?.companyName ?? '',
@@ -474,10 +475,16 @@ export function ContractForm() {
         </button>
         <div>
           <h1 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--primary)' }}>
-            {isEdit ? `Edit Contract — ${contractNo}` : 'New Sale Contract'}
+            {isEdit
+              ? `Edit ${existingContract?.docType === 'proforma_invoice' ? 'Proforma Invoice' : 'Contract'} — ${contractNo}`
+              : 'New Sale Contract'}
           </h1>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
-            {isEdit ? 'Editing existing contract' : 'Fill in all sections below'}
+            {isEdit
+              ? existingContract?.docType === 'proforma_invoice'
+                ? 'Editing Proforma Invoice — details copied from the original signed contract'
+                : 'Editing existing contract'
+              : 'Fill in all sections below'}
           </p>
         </div>
       </div>

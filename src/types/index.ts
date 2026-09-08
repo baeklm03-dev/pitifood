@@ -68,22 +68,19 @@ export interface ProductSpecDetail {
 }
 
 export interface PackingDetail {
+  innerBoxDesc: string;         // กล่องอินเนอร์ headline — free text (placeholder suggests product+brand)
   innerBoxWidthMm: string;
   innerBoxLengthMm: string;
   innerBoxHeightMm: string;     // กล่องอินเนอร์ ขนาด กว้าง x ยาว x สูง mm
   innerBoxCode: string;         // รหัสกล่อง (I-...) — see BoxCodeInput
-  topLidChecklist: string;      // ฝาบน: กาเครื่องหมายถูกต้องที่ช่อง (free text)
-  topLidStampCode: string;      // stamp code 12 หลัก
-  topLidStampDate: boolean;     // ประทับ Production date รูปแบบ YYYY.MM.DD
-  bottomLidType: 'printed' | 'blank'; // ฝาล่าง: พิมพ์ระบุ / ไม่มีข้อความใดๆ
-  bottomLidDetail: string;      // ใช้เมื่อ bottomLidType === 'printed'
+  topLidItems: RequirementItem[];    // ฝาบน — addable free lines (e.g. stamp/checklist notes)
+  bottomLidItems: RequirementItem[]; // ฝาล่าง — addable free lines
+  outerBoxDesc: string;         // กล่องนอก headline — free text (placeholder suggests product+brand)
   outerBoxWidthMm: string;
   outerBoxLengthMm: string;
   outerBoxHeightMm: string;     // กล่องนอก ขนาด กว้าง x ยาว x สูง mm
   outerBoxCode: string;         // รหัสกล่อง (M-...) — see BoxCodeInput
-  outerBoxChecklist: string;    // free text
-  outerBoxStampCode: string;
-  outerBoxDateMatchInner: boolean; // วันผลิต/วันหมดอายุตรงกับกล่องอินเนอร์
+  outerBoxItems: RequirementItem[];  // กล่องนอก — addable free lines (flat, no ฝาบน/ฝาล่าง split)
   strapped: boolean;            // เชือกสายรัด: รัด / ไม่รัด
   strappingColor: string;       // ใช้เมื่อ strapped === true
   strappingStyle: string;       // ลักษณะการรัด

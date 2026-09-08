@@ -23,19 +23,22 @@ export function PackingDetailFields({ value, onChange, fieldId, buyerCode, produ
     onChange({ ...value, [key]: v });
 
   const groupLabel: React.CSSProperties = { fontSize: '12.5px', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: '8px' };
+  const subLabel: React.CSSProperties = { fontSize: '12.5px', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: '6px', textDecoration: 'underline' };
   const block: React.CSSProperties = { paddingTop: '12px', borderTop: '1px dashed var(--border)' };
-  const checkboxLabel: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer', fontSize: '12.5px' };
   const radioLabel: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12.5px' };
   const sizeRow: React.CSSProperties = { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' };
   const previewStyle: React.CSSProperties = { fontSize: '11.5px', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '6px' };
 
-  const ctx: BoxLineContext = { productType, brand, netWeightGrams };
+  const ctx: BoxLineContext = { netWeightGrams };
+  const innerPlaceholder = `อินเนอร์${productType}${brand ? ` (${brand})` : ''}`;
+  const outerPlaceholder = `กล่องนอก${productType}${brand ? ` ${brand}` : ''}`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
       <div>
-        <label style={groupLabel}>กล่องอินเนอร์ — ขนาด กว้าง x ยาว x สูง (mm)</label>
-        <div style={sizeRow}>
+        <label style={groupLabel}>กล่องอินเนอร์</label>
+        <Input value={value.innerBoxDesc} onChange={(e) => set('innerBoxDesc', e.target.value)} placeholder={innerPlaceholder} />
+        <div style={{ ...sizeRow, marginTop: '8px' }}>
           <Input type="number" value={value.innerBoxWidthMm} onChange={(e) => set('innerBoxWidthMm', e.target.value)} placeholder="กว้าง" style={mmInput} />
           <span style={{ color: 'var(--text-muted)' }}>x</span>
           <Input type="number" value={value.innerBoxLengthMm} onChange={(e) => set('innerBoxLengthMm', e.target.value)} placeholder="ยาว" style={mmInput} />
@@ -50,57 +53,32 @@ export function PackingDetailFields({ value, onChange, fieldId, buyerCode, produ
       </div>
 
       <div style={block}>
-        <label style={groupLabel}>ฝาบน</label>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <Input value={value.topLidChecklist} onChange={(e) => set('topLidChecklist', e.target.value)} placeholder="กาเครื่องหมายถูกต้องที่ช่อง — เช่น size" />
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <Input value={value.topLidStampCode} onChange={(e) => set('topLidStampCode', e.target.value)} placeholder="stamp code (12 หลัก)" style={{ maxWidth: '200px' }} />
-            <label style={checkboxLabel}>
-              <input type="checkbox" checked={value.topLidStampDate} onChange={(e) => set('topLidStampDate', e.target.checked)} style={{ width: '15px', height: '15px', accentColor: 'var(--primary)' }} />
-              stamp Production date (YYYY.MM.DD)
-            </label>
-          </div>
-        </div>
+        <label style={subLabel}>ฝาบน</label>
+        <RequirementChecklist items={value.topLidItems} onChange={(v) => set('topLidItems', v)} />
       </div>
 
       <div style={block}>
-        <label style={groupLabel}>ฝาล่าง</label>
-        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <label style={radioLabel}>
-            <input type="radio" name={`${fieldId}-bottomLidType`} checked={value.bottomLidType === 'printed'} onChange={() => set('bottomLidType', 'printed')} style={{ accentColor: 'var(--primary)' }} />
-            พิมพ์ระบุ
-          </label>
-          <label style={radioLabel}>
-            <input type="radio" name={`${fieldId}-bottomLidType`} checked={value.bottomLidType === 'blank'} onChange={() => set('bottomLidType', 'blank')} style={{ accentColor: 'var(--primary)' }} />
-            ไม่มีข้อความใดๆ
-          </label>
-          {value.bottomLidType === 'printed' && (
-            <Input value={value.bottomLidDetail} onChange={(e) => set('bottomLidDetail', e.target.value)} placeholder="ระบุข้อความ" style={{ flex: 1, minWidth: '160px' }} />
-          )}
-        </div>
+        <label style={subLabel}>ฝาล่าง</label>
+        <RequirementChecklist items={value.bottomLidItems} onChange={(v) => set('bottomLidItems', v)} />
       </div>
 
       <div style={block}>
-        <label style={groupLabel}>กล่องนอก — ขนาด กว้าง x ยาว x สูง (mm)</label>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={sizeRow}>
-            <Input type="number" value={value.outerBoxWidthMm} onChange={(e) => set('outerBoxWidthMm', e.target.value)} placeholder="กว้าง" style={mmInput} />
-            <span style={{ color: 'var(--text-muted)' }}>x</span>
-            <Input type="number" value={value.outerBoxLengthMm} onChange={(e) => set('outerBoxLengthMm', e.target.value)} placeholder="ยาว" style={mmInput} />
-            <span style={{ color: 'var(--text-muted)' }}>x</span>
-            <Input type="number" value={value.outerBoxHeightMm} onChange={(e) => set('outerBoxHeightMm', e.target.value)} placeholder="สูง" style={mmInput} />
-            <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>mm</span>
-          </div>
+        <label style={groupLabel}>กล่องนอก</label>
+        <Input value={value.outerBoxDesc} onChange={(e) => set('outerBoxDesc', e.target.value)} placeholder={outerPlaceholder} />
+        <div style={{ ...sizeRow, marginTop: '8px' }}>
+          <Input type="number" value={value.outerBoxWidthMm} onChange={(e) => set('outerBoxWidthMm', e.target.value)} placeholder="กว้าง" style={mmInput} />
+          <span style={{ color: 'var(--text-muted)' }}>x</span>
+          <Input type="number" value={value.outerBoxLengthMm} onChange={(e) => set('outerBoxLengthMm', e.target.value)} placeholder="ยาว" style={mmInput} />
+          <span style={{ color: 'var(--text-muted)' }}>x</span>
+          <Input type="number" value={value.outerBoxHeightMm} onChange={(e) => set('outerBoxHeightMm', e.target.value)} placeholder="สูง" style={mmInput} />
+          <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>mm</span>
+        </div>
+        <div style={{ marginTop: '8px' }}>
           <BoxCodeInput label="รหัสกล่องนอก" prefix="M" buyerCode={buyerCode} value={value.outerBoxCode} onChange={(v) => set('outerBoxCode', v)} />
-          <p style={previewStyle}>2.2 {composeOuterBoxLine(value, ctx)}</p>
-          <Input value={value.outerBoxChecklist} onChange={(e) => set('outerBoxChecklist', e.target.value)} placeholder="กาเครื่องหมายถูกต้องที่ช่อง — เช่น size" />
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-            <Input value={value.outerBoxStampCode} onChange={(e) => set('outerBoxStampCode', e.target.value)} placeholder="stamp code (12 หลัก)" style={{ maxWidth: '200px' }} />
-            <label style={checkboxLabel}>
-              <input type="checkbox" checked={value.outerBoxDateMatchInner} onChange={(e) => set('outerBoxDateMatchInner', e.target.checked)} style={{ width: '15px', height: '15px', accentColor: 'var(--primary)' }} />
-              วันผลิต/วันหมดอายุตรงกับกล่องอินเนอร์
-            </label>
-          </div>
+        </div>
+        <p style={previewStyle}>2.2 {composeOuterBoxLine(value, ctx)}</p>
+        <div style={{ marginTop: '10px' }}>
+          <RequirementChecklist items={value.outerBoxItems} onChange={(v) => set('outerBoxItems', v)} />
         </div>
       </div>
 

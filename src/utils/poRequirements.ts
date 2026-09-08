@@ -15,11 +15,10 @@ export function emptyProductSpec(): ProductSpecDetail {
 
 export function emptyPackingDetail(): PackingDetail {
   return {
-    innerBoxWidthMm: '', innerBoxLengthMm: '', innerBoxHeightMm: '', innerBoxCode: '',
-    topLidChecklist: '', topLidStampCode: '', topLidStampDate: false,
-    bottomLidType: 'blank', bottomLidDetail: '',
-    outerBoxWidthMm: '', outerBoxLengthMm: '', outerBoxHeightMm: '', outerBoxCode: '',
-    outerBoxChecklist: '', outerBoxStampCode: '', outerBoxDateMatchInner: false,
+    innerBoxDesc: '', innerBoxWidthMm: '', innerBoxLengthMm: '', innerBoxHeightMm: '', innerBoxCode: '',
+    topLidItems: [], bottomLidItems: [],
+    outerBoxDesc: '', outerBoxWidthMm: '', outerBoxLengthMm: '', outerBoxHeightMm: '', outerBoxCode: '',
+    outerBoxItems: [],
     strapped: false, strappingColor: '', strappingStyle: '',
     extraItems: [],
   };
@@ -112,47 +111,77 @@ export function formatProductSpecLines(v: ProductSpecDetail, prefix: string): st
   return numberLines(lines, v.extraItems, prefix);
 }
 
-// Shared by the PackingDetailFields live preview and formatPackingDetailLines below, so the
+// Shared by the PackingDetailFields live preview and buildPackingDetailBlock below, so the
 // form preview and the printed line can never drift out of sync.
-export interface BoxLineContext { productType: string; brand: string; netWeightGrams: string; }
+export interface BoxLineContext { netWeightGrams: string; }
 
 export function composeInnerBoxLine(v: PackingDetail, ctx: BoxLineContext): string {
   const size = `${v.innerBoxWidthMm || '-'}x${v.innerBoxLengthMm || '-'}x${v.innerBoxHeightMm || '-'}`;
-  return `อินเนอร์${ctx.productType}${ctx.brand ? ` (${ctx.brand})` : ''} ${ctx.netWeightGrams || '-'} กรัม ขนาด ${size} mm. รหัส : ${v.innerBoxCode || '-'}`;
+  return `${v.innerBoxDesc || '-'} ${ctx.netWeightGrams || '-'} กรัม ขนาด ${size} mm. รหัส : ${v.innerBoxCode || '-'}`;
 }
 
 export function composeOuterBoxLine(v: PackingDetail, ctx: BoxLineContext): string {
   const size = `${v.outerBoxWidthMm || '-'}x${v.outerBoxLengthMm || '-'}x${v.outerBoxHeightMm || '-'}`;
-  return `กล่องนอก${ctx.productType}${ctx.brand ? ` ${ctx.brand}` : ''} ${ctx.netWeightGrams || '-'} กรัม ขนาด ${size} mm. รหัส : ${v.outerBoxCode || '-'}`;
+  return `${v.outerBoxDesc || '-'} ${ctx.netWeightGrams || '-'} กรัม ขนาด ${size} mm. รหัส : ${v.outerBoxCode || '-'}`;
 }
 
+function checkedTexts(items: RequirementItem[]): string[] {
+  return items.filter((item) => item.checked && item.text.trim()).map((item) => item.text.trim());
+}
+
+// Structured packing-detail output for print — 2.1 (inner box) and 2.2 (outer box) are each a
+// numbered headline with their own unnumbered "- " sub-bullets nested under them (ฝาบน/ฝาล่าง for
+// inner, a flat list for outer); strap info + any custom extra items continue the numbering
+// afterward (2.3, 2.4, ...). Kept structured (not a flat string[]) so the print layout can render
+// the ฝาบน/ฝาล่าง group labels underlined — see POPrint.tsx.
+export interface PackingDetailBlock {
+  innerHeadline: string | null;
+  topLidLines: string[];
+  bottomLidLines: string[];
+  outerHeadline: string | null;
+  outerLines: string[];
+  tailLines: string[];
+}
+
+export function buildPackingDetailBlock(v: PackingDetail, prefix: string, ctx: BoxLineContext): PackingDetailBlock {
+  const hasInner = v.innerBoxDesc || v.innerBoxWidthMm || v.innerBoxLengthMm || v.innerBoxHeightMm || v.innerBoxCode;
+  const hasOuter = v.outerBoxDesc || v.outerBoxWidthMm || v.outerBoxLengthMm || v.outerBoxHeightMm || v.outerBoxCode;
+  let n = 0;
+  const innerHeadline = hasInner ? `${prefix}.${++n} ${composeInnerBoxLine(v, ctx)}` : null;
+  const outerHeadline = hasOuter ? `${prefix}.${++n} ${composeOuterBoxLine(v, ctx)}` : null;
+
+  const tailSources = [
+    v.strapped ? `เชือกสายรัด: รัด สี ${v.strappingColor || '-'} ลักษณะ ${v.strappingStyle || '-'}` : 'เชือกสายรัด: ไม่รัด',
+    ...checkedTexts(v.extraItems ?? []),
+  ];
+  const tailLines = tailSources.map((line) => `${prefix}.${++n} ${line}`);
+
+  return {
+    innerHeadline,
+    topLidLines: checkedTexts(v.topLidItems),
+    bottomLidLines: checkedTexts(v.bottomLidItems),
+    outerHeadline,
+    outerLines: checkedTexts(v.outerBoxItems),
+    tailLines,
+  };
+}
+
+// Flat text-only rendering of a packing block — used by read-only summary views (Brand/Buyer
+// pages) where the ฝาบน/ฝาล่าง underline styling doesn't matter, just the content.
 export function formatPackingDetailLines(v: PackingDetail, prefix: string, ctx: BoxLineContext): string[] {
+  const block = buildPackingDetailBlock(v, prefix, ctx);
   const lines: string[] = [];
-  if (v.innerBoxWidthMm || v.innerBoxLengthMm || v.innerBoxHeightMm || v.innerBoxCode) {
-    lines.push(composeInnerBoxLine(v, ctx));
+  if (block.innerHeadline) {
+    lines.push(block.innerHeadline);
+    if (block.topLidLines.length) { lines.push('ฝาบน'); block.topLidLines.forEach((t) => lines.push(`- ${t}`)); }
+    if (block.bottomLidLines.length) { lines.push('ฝาล่าง'); block.bottomLidLines.forEach((t) => lines.push(`- ${t}`)); }
   }
-  if (v.topLidChecklist || v.topLidStampCode || v.topLidStampDate) {
-    const parts = [
-      v.topLidChecklist && `กาเครื่องหมายถูกต้องที่ช่อง: ${v.topLidChecklist}`,
-      v.topLidStampCode && `stamp code ${v.topLidStampCode}`,
-      v.topLidStampDate && 'stamp Production date : YYYY.MM.DD',
-    ].filter(Boolean);
-    lines.push(`ฝาบน: ${parts.join(' / ')}`);
+  if (block.outerHeadline) {
+    lines.push(block.outerHeadline);
+    block.outerLines.forEach((t) => lines.push(`- ${t}`));
   }
-  lines.push(`ฝาล่าง: ${v.bottomLidType === 'printed' ? `พิมพ์ระบุ${v.bottomLidDetail ? ` ${v.bottomLidDetail}` : ''}` : 'ไม่มีข้อความใดๆ'}`);
-  if (v.outerBoxWidthMm || v.outerBoxLengthMm || v.outerBoxHeightMm || v.outerBoxCode) {
-    lines.push(composeOuterBoxLine(v, ctx));
-  }
-  if (v.outerBoxChecklist || v.outerBoxStampCode || v.outerBoxDateMatchInner) {
-    const parts = [
-      v.outerBoxChecklist && `กาเครื่องหมายถูกต้องที่ช่อง: ${v.outerBoxChecklist}`,
-      v.outerBoxStampCode && `stamp code ${v.outerBoxStampCode}`,
-      v.outerBoxDateMatchInner && 'วันผลิตและวันหมดอายุตรงกับกล่องอินเนอร์',
-    ].filter(Boolean);
-    lines.push(`กล่องนอก (ต่อ): ${parts.join(' / ')}`);
-  }
-  lines.push(`เชือกสายรัด: ${v.strapped ? `รัด สี ${v.strappingColor || '-'} ลักษณะ ${v.strappingStyle || '-'}` : 'ไม่รัด'}`);
-  return numberLines(lines, v.extraItems, prefix);
+  lines.push(...block.tailLines);
+  return lines;
 }
 
 // Filters to checked items and auto-numbers them ("3.1", "3.2", ...) — real POs show a plain

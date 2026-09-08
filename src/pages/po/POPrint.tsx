@@ -7,7 +7,7 @@ import { poService } from '../../services/poService';
 import { buyerService } from '../../services/buyerService';
 import type { ProductionOrder, POLine, Buyer } from '../../types';
 import { formatDateTH } from '../../utils/thaiDate';
-import { formatProductSpecLines, formatPackingDetailLines, formatRequirementLines } from '../../utils/poRequirements';
+import { formatProductSpecLines, buildPackingDetailBlock, formatRequirementLines, type PackingDetailBlock } from '../../utils/poRequirements';
 import { getProductFullName } from '../../utils/productTypes';
 import { Button } from '../../components/UI/Button';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
@@ -57,27 +57,26 @@ function computeLineSpanGroups(lines: POLine[], overrides?: Record<string, strin
   return result;
 }
 
-interface ReqSectionEntry { label: string; lines: string[]; }
+interface ReqSectionEntry { label: string; lines: string[]; remark?: string; }
 
 function collectSpecEntries(groups: LineGroup[], po: ProductionOrder, overrides?: Record<string, string>): ReqSectionEntry[] {
   return groups
     .map((g) => {
       const pr = po.productRequirements.find((p) => p.productType === g.productType && (p.brand ?? '') === (g.brand ?? ''));
-      return { label: `${getProductFullName(g.productType, overrides)}${g.brand ? ` "${g.brand}"` : ''}`, lines: pr ? formatProductSpecLines(pr.productSpec, '1') : [] };
-    })
-    .filter((e) => e.lines.length > 0);
-}
-
-function collectPackingEntries(groups: LineGroup[], po: ProductionOrder, overrides?: Record<string, string>): ReqSectionEntry[] {
-  return groups
-    .map((g) => {
-      const pr = po.productRequirements.find((p) => p.productType === g.productType && (p.brand ?? '') === (g.brand ?? ''));
       return {
         label: `${getProductFullName(g.productType, overrides)}${g.brand ? ` "${g.brand}"` : ''}`,
-        lines: pr ? formatPackingDetailLines(pr.packingDetail, '2', { productType: g.productType, brand: g.brand ?? '', netWeightGrams: pr.productSpec.netWeightGrams }) : [],
+        lines: pr ? formatProductSpecLines(pr.productSpec, '1') : [],
+        remark: pr?.productSpecRemark,
       };
     })
-    .filter((e) => e.lines.length > 0);
+    .filter((e) => e.lines.length > 0 || e.remark);
+}
+
+// Remark rendered right under the section content it belongs to, instead of a separate
+// consolidated remarks block — keeps a remark visually attached to the item it's about.
+function RemarkLine({ text }: { text?: string }) {
+  if (!text) return null;
+  return <div style={{ fontSize: '7.5pt', color: '#C0392B', fontStyle: 'italic', marginTop: '1pt' }}>หมายเหตุ: {text}</div>;
 }
 
 // One heading; flat text if only one product has content, otherwise a bullet per product
@@ -88,12 +87,16 @@ function RequirementSection({ sectionNo, title, entries }: { sectionNo: number; 
     <div style={{ marginBottom: '6pt' }}>
       <div style={{ fontWeight: 600, fontSize: '8.5pt' }}>{sectionNo}. {title}</div>
       {entries.length === 1 ? (
-        <div style={{ fontSize: '8pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '4pt' }}>{entries[0].lines.join('\n')}</div>
+        <>
+          <div style={{ fontSize: '8pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '4pt' }}>{entries[0].lines.join('\n')}</div>
+          <div style={{ paddingLeft: '4pt' }}><RemarkLine text={entries[0].remark} /></div>
+        </>
       ) : (
         entries.map((e, i) => (
           <div key={i} style={{ marginTop: '2pt', paddingLeft: '4pt' }}>
             <div style={{ fontSize: '8pt', fontWeight: 600 }}>• {e.label}</div>
             <div style={{ fontSize: '7.5pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '10pt' }}>{e.lines.join('\n')}</div>
+            <div style={{ paddingLeft: '10pt' }}><RemarkLine text={e.remark} /></div>
           </div>
         ))
       )}
@@ -101,7 +104,74 @@ function RequirementSection({ sectionNo, title, entries }: { sectionNo: number; 
   );
 }
 
-interface RemarkEntry { label: string; text: string; }
+interface PackingSectionEntry { label: string; block: PackingDetailBlock; remark?: string; }
+
+function collectPackingEntries(groups: LineGroup[], po: ProductionOrder, overrides?: Record<string, string>): PackingSectionEntry[] {
+  return groups
+    .map((g) => {
+      const pr = po.productRequirements.find((p) => p.productType === g.productType && (p.brand ?? '') === (g.brand ?? ''));
+      const block = pr
+        ? buildPackingDetailBlock(pr.packingDetail, '2', { netWeightGrams: pr.productSpec.netWeightGrams })
+        : { innerHeadline: null, topLidLines: [], bottomLidLines: [], outerHeadline: null, outerLines: [], tailLines: [] };
+      return { label: `${getProductFullName(g.productType, overrides)}${g.brand ? ` "${g.brand}"` : ''}`, block, remark: pr?.packingDetailRemark };
+    })
+    .filter((e) => e.block.innerHeadline || e.block.outerHeadline || e.block.tailLines.length > 0 || e.remark);
+}
+
+// Renders one product's packing-detail block: 2.1/2.2 headlines with the ฝาบน/ฝาล่าง (inner) or
+// flat (outer) sub-bullets nested underneath, underlined group labels, then the numbered tail
+// (strap + custom extra items), and finally that product's remark right below it all.
+function PackingBlockView({ block, remark }: { block: PackingDetailBlock; remark?: string }) {
+  const bulletList = (lines: string[]) => lines.map((t, i) => (
+    <div key={i} style={{ fontSize: '7.5pt', lineHeight: 1.5, paddingLeft: '10pt' }}>- {t}</div>
+  ));
+  return (
+    <>
+      {block.innerHeadline && (
+        <div style={{ fontSize: '8pt', lineHeight: 1.5 }}>{block.innerHeadline}</div>
+      )}
+      {block.topLidLines.length > 0 && (
+        <div style={{ paddingLeft: '6pt' }}>
+          <div style={{ fontSize: '7.5pt', fontWeight: 600, textDecoration: 'underline' }}>ฝาบน</div>
+          {bulletList(block.topLidLines)}
+        </div>
+      )}
+      {block.bottomLidLines.length > 0 && (
+        <div style={{ paddingLeft: '6pt' }}>
+          <div style={{ fontSize: '7.5pt', fontWeight: 600, textDecoration: 'underline' }}>ฝาล่าง</div>
+          {bulletList(block.bottomLidLines)}
+        </div>
+      )}
+      {block.outerHeadline && (
+        <div style={{ fontSize: '8pt', lineHeight: 1.5, marginTop: '2pt' }}>{block.outerHeadline}</div>
+      )}
+      {bulletList(block.outerLines)}
+      {block.tailLines.map((line, i) => (
+        <div key={i} style={{ fontSize: '8pt', lineHeight: 1.5 }}>{line}</div>
+      ))}
+      <RemarkLine text={remark} />
+    </>
+  );
+}
+
+function PackingRequirementSection({ entries }: { entries: PackingSectionEntry[] }) {
+  if (entries.length === 0) return null;
+  return (
+    <div style={{ marginBottom: '6pt' }}>
+      <div style={{ fontWeight: 600, fontSize: '8.5pt' }}>2. รายละเอียดและข้อกำหนดบรรจุภัณฑ์</div>
+      {entries.length === 1 ? (
+        <div style={{ paddingLeft: '4pt' }}><PackingBlockView block={entries[0].block} remark={entries[0].remark} /></div>
+      ) : (
+        entries.map((e, i) => (
+          <div key={i} style={{ marginTop: '2pt', paddingLeft: '4pt' }}>
+            <div style={{ fontSize: '8pt', fontWeight: 600 }}>• {e.label}</div>
+            <div style={{ paddingLeft: '10pt' }}><PackingBlockView block={e.block} remark={e.remark} /></div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
 
 export function POPrint() {
   const { id } = useParams<{ id: string }>();
@@ -138,15 +208,6 @@ export function POPrint() {
   const packingEntries = collectPackingEntries(groups, po, overrides);
   const loadingLines = formatRequirementLines(po.loadingRequirement, '3');
   const documentLines = formatRequirementLines(po.documentRequirement, '4');
-
-  const remarks: RemarkEntry[] = [];
-  po.productRequirements.forEach((pr) => {
-    const label = `${pr.productType}${pr.brand ? ` "${pr.brand}"` : ''}`;
-    if (pr.productSpecRemark) remarks.push({ label: `${label} — รายละเอียดสินค้า`, text: pr.productSpecRemark });
-    if (pr.packingDetailRemark) remarks.push({ label: `${label} — บรรจุภัณฑ์`, text: pr.packingDetailRemark });
-  });
-  if (po.loadingRequirementRemark) remarks.push({ label: 'ข้อกำหนดการโหลด', text: po.loadingRequirementRemark });
-  if (po.documentRequirementRemark) remarks.push({ label: 'เอกสารและภาพถ่าย', text: po.documentRequirementRemark });
 
   const handleExportPdf = async () => {
     if (!pageRef.current) return;
@@ -311,45 +372,35 @@ export function POPrint() {
             </div>
           )}
 
-          {/* Requirements — flat text for one product, bulleted per product when there's more than one */}
+          {/* Requirements — flat text for one product, bulleted per product when there's more than one.
+              Each section's remark renders directly under that section instead of a consolidated block. */}
           <div style={{ fontWeight: 700, fontSize: '9pt', marginBottom: '3pt' }}>ข้อกำหนดอื่นๆ</div>
           <RequirementSection sectionNo={1} title="รายละเอียดสินค้า (Product specification)" entries={specEntries} />
-          <RequirementSection sectionNo={2} title="รายละเอียดและข้อกำหนดบรรจุภัณฑ์" entries={packingEntries} />
+          <PackingRequirementSection entries={packingEntries} />
 
           {loadingLines.length > 0 && (
             <div style={{ marginBottom: '6pt' }}>
               <div style={{ fontWeight: 600, fontSize: '8.5pt' }}>3. ข้อกำหนดการโหลด (Loading requirement)</div>
               <div style={{ fontSize: '8pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '4pt' }}>{loadingLines.join('\n')}</div>
+              <div style={{ paddingLeft: '4pt' }}><RemarkLine text={po.loadingRequirementRemark} /></div>
             </div>
           )}
           {documentLines.length > 0 && (
             <div style={{ marginBottom: '6pt' }}>
               <div style={{ fontWeight: 600, fontSize: '8.5pt' }}>4. การจัดเตรียมเอกสารและภาพถ่าย</div>
               <div style={{ fontSize: '8pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '4pt' }}>{documentLines.join('\n')}</div>
+              <div style={{ paddingLeft: '4pt' }}><RemarkLine text={po.documentRequirementRemark} /></div>
             </div>
           )}
 
-          {/* Signatures — left shows the preparer's name (no signing needed), right is a blank signature space */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16pt', marginBottom: '10pt' }}>
-            <div style={{ textAlign: 'center', width: '45%' }}>
-              <div style={{ fontSize: '9pt', fontWeight: 600, minHeight: '18pt', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>{po.preparedBy || ' '}</div>
-              <div style={{ borderTop: '0.5pt solid #000', marginTop: '3pt', paddingTop: '3pt', fontSize: '8.5pt' }}>ผู้จัดทำ</div>
-            </div>
-            <div style={{ textAlign: 'center', width: '45%' }}>
-              <div style={{ borderBottom: '0.5pt dotted #000', minHeight: '20pt' }} />
-              <div style={{ fontSize: '8.5pt', marginTop: '3pt' }}>ผู้อนุมัติ</div>
+          {/* Signatures — one line: preparer's name shown directly, approver left blank to sign */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '16pt', marginBottom: '10pt', fontSize: '8.5pt' }}>
+            <div>ผู้จัดทำ &nbsp;{po.preparedBy || ' '}</div>
+            <div style={{ display: 'flex', alignItems: 'baseline' }}>
+              <span>ผู้อนุมัติ</span>
+              <span style={{ display: 'inline-block', minWidth: '120pt', borderBottom: '0.5pt dotted #000', marginLeft: '6pt' }}>&nbsp;</span>
             </div>
           </div>
-
-          {/* Remark — consolidated below the signature area */}
-          {remarks.length > 0 && (
-            <div style={{ marginBottom: '10pt' }}>
-              <div style={{ fontWeight: 700, fontSize: '8.5pt', marginBottom: '2pt' }}>Remark</div>
-              {remarks.map((r, i) => (
-                <div key={i} style={{ fontSize: '7.5pt', color: '#C0392B', lineHeight: 1.5 }}>- [{r.label}] {r.text}</div>
-              ))}
-            </div>
-          )}
 
           {/* Footer */}
           <div style={{ marginTop: '10pt', fontSize: '7pt', color: '#333', textAlign: 'center', borderTop: '0.5pt solid #999', paddingTop: '5pt' }}>

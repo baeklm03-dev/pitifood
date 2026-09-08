@@ -17,11 +17,17 @@ export function generateContractNo(buyerCode: string, existingContracts: SaleCon
   return `${prefix}${next}`;
 }
 
+// Strips the " rev.N" / " PI.N" suffix a rewrite or Proforma Invoice copy adds to a contract
+// number — e.g. for the printed "Reference No." field, which always shows the plain base number.
+export function baseContractNo(contractNo: string): string {
+  return contractNo.split(' rev.')[0].split(' PI.')[0];
+}
+
 export function generateRevisionContractNo(
   parentContract: SaleContract,
   existingContracts: SaleContract[]
 ): string {
-  const baseNo = parentContract.contractNo.split(' rev.')[0];
+  const baseNo = baseContractNo(parentContract.contractNo);
   // Count only prior rewrites (not the base contract itself), so the first rewrite is rev.1.
   const priorRevisions = existingContracts.filter((c) => c.contractNo.startsWith(`${baseNo} rev.`));
   return `${baseNo} rev.${priorRevisions.length + 1}`;
@@ -33,7 +39,7 @@ export function generateProformaInvoiceNo(
   sourceContract: SaleContract,
   existingContracts: SaleContract[]
 ): string {
-  const baseNo = sourceContract.contractNo.split(' rev.')[0].split(' PI.')[0];
+  const baseNo = baseContractNo(sourceContract.contractNo);
   const priorPI = existingContracts.filter((c) => c.contractNo.startsWith(`${baseNo} PI.`));
   return `${baseNo} PI.${priorPI.length + 1}`;
 }

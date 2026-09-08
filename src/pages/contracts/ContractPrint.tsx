@@ -8,6 +8,7 @@ import { buyerService } from '../../services/buyerService';
 import type { Buyer, ProductLine, SaleContract } from '../../types';
 import { formatShipment } from '../../utils/shipment';
 import { getProductFullName } from '../../utils/productTypes';
+import { baseContractNo } from '../../utils/contractNumber';
 import { Button } from '../../components/UI/Button';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 import { useResponsive } from '../../hooks/useMediaQuery';
@@ -209,7 +210,7 @@ export function ContractPrint() {
               <tbody>
                 <tr>
                   <td style={{ padding: '1.5pt 0', fontSize: '8.5pt', verticalAlign: 'top', width: '78pt' }}>Reference No.</td>
-                  <td style={{ padding: '1.5pt 0', fontSize: '8.5pt', fontWeight: 600 }} colSpan={3}>{contract.contractNo}</td>
+                  <td style={{ padding: '1.5pt 0', fontSize: '8.5pt', fontWeight: 600 }} colSpan={3}>{baseContractNo(contract.contractNo)}</td>
                 </tr>
                 <tr>
                   <td style={{ padding: '1.5pt 0', fontSize: '8.5pt', verticalAlign: 'top' }}>Date :</td>

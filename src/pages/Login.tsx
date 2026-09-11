@@ -172,6 +172,9 @@ export function Login() {
           </button>
         </form>
 
+        <p style={{ textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)', marginTop: '28px' }}>
+          PITI FOODS Co., Ltd.
+        </p>
       </div>
     </div>
   );

@@ -254,8 +254,8 @@ export function BrandForm() {
           <PackingDetailFields
             fieldId="brand-packing-detail"
             buyerCode={form.buyerCode}
-            productType={form.productTypes[0] ?? 'สินค้า'}
             brand={form.brandName}
+            productForm={form.productSpec.productForm}
             netWeightGrams={form.productSpec.netWeightGrams}
             value={form.packingDetail}
             onChange={(v) => setForm((p) => ({ ...p, packingDetail: v }))}

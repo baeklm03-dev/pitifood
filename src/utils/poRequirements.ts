@@ -6,7 +6,7 @@ function uid() {
 
 export function emptyProductSpec(): ProductSpecDetail {
   return {
-    standard: '', color: '',
+    productForm: '', standardCustomer: '', standardCode: '', colorSizePlus: '',
     netWeightGrams: '', boxWeightGrams: '', afterGlazeWeightGrams: '',
     glazePercent: '', glazeMethod: '',
     extraItems: [],
@@ -15,11 +15,11 @@ export function emptyProductSpec(): ProductSpecDetail {
 
 export function emptyPackingDetail(): PackingDetail {
   return {
-    innerBoxDesc: '', innerBoxWidthMm: '', innerBoxLengthMm: '', innerBoxHeightMm: '', innerBoxCode: '',
+    innerBoxWidthMm: '', innerBoxLengthMm: '', innerBoxHeightMm: '', innerBoxCode: '',
     topLidItems: [], bottomLidItems: [],
     outerBoxDesc: '', outerBoxWidthMm: '', outerBoxLengthMm: '', outerBoxHeightMm: '', outerBoxCode: '',
     outerBoxItems: [],
-    strapped: false, strappingColor: '', strappingStyle: '',
+    strapped: false, strappingColor: '', strappingCount: '', strappingStyle: '',
     extraItems: [],
   };
 }
@@ -83,14 +83,17 @@ export function cloneRequirementItems(items: RequirementItem[]): RequirementItem
 }
 
 // Backward-compat adapter for ProductSpecDetail — old rows may still carry the removed
-// netWeightWidthMm/LengthMm/HeightMm fields instead of today's shape; those are simply dropped.
+// standard/color free-text fields (or netWeightWidthMm/LengthMm/HeightMm before that) instead
+// of today's shape; those are simply dropped (not reliably convertible into the new dropdowns).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function normalizeProductSpec(raw: any): ProductSpecDetail {
   const base = emptyProductSpec();
   if (!raw || typeof raw !== 'object') return base;
   return {
-    standard: typeof raw.standard === 'string' ? raw.standard : base.standard,
-    color: typeof raw.color === 'string' ? raw.color : base.color,
+    productForm: raw.productForm === 'cooked' || raw.productForm === 'raw' ? raw.productForm : base.productForm,
+    standardCustomer: typeof raw.standardCustomer === 'string' ? raw.standardCustomer : base.standardCustomer,
+    standardCode: typeof raw.standardCode === 'string' ? raw.standardCode : base.standardCode,
+    colorSizePlus: typeof raw.colorSizePlus === 'string' ? raw.colorSizePlus : base.colorSizePlus,
     netWeightGrams: typeof raw.netWeightGrams === 'string' ? raw.netWeightGrams : base.netWeightGrams,
     boxWeightGrams: typeof raw.boxWeightGrams === 'string' ? raw.boxWeightGrams : base.boxWeightGrams,
     afterGlazeWeightGrams: typeof raw.afterGlazeWeightGrams === 'string' ? raw.afterGlazeWeightGrams : base.afterGlazeWeightGrams,
@@ -135,7 +138,6 @@ export function normalizePackingDetail(raw: any): PackingDetail {
   const base = emptyPackingDetail();
   if (!raw || typeof raw !== 'object') return base;
   return {
-    innerBoxDesc: typeof raw.innerBoxDesc === 'string' ? raw.innerBoxDesc : base.innerBoxDesc,
     innerBoxWidthMm: typeof raw.innerBoxWidthMm === 'string' ? raw.innerBoxWidthMm : base.innerBoxWidthMm,
     innerBoxLengthMm: typeof raw.innerBoxLengthMm === 'string' ? raw.innerBoxLengthMm : base.innerBoxLengthMm,
     innerBoxHeightMm: typeof raw.innerBoxHeightMm === 'string' ? raw.innerBoxHeightMm : base.innerBoxHeightMm,
@@ -156,6 +158,7 @@ export function normalizePackingDetail(raw: any): PackingDetail {
       : legacyOuterBoxItems(raw.outerBoxChecklist, raw.outerBoxStampCode, raw.outerBoxDateMatchInner),
     strapped: Boolean(raw.strapped),
     strappingColor: typeof raw.strappingColor === 'string' ? raw.strappingColor : '',
+    strappingCount: typeof raw.strappingCount === 'string' ? raw.strappingCount : '',
     strappingStyle: typeof raw.strappingStyle === 'string' ? raw.strappingStyle : '',
     extraItems: normalizeRequirementItems(raw.extraItems ?? []),
   };
@@ -173,10 +176,25 @@ function numberLines(rawLines: string[], extraItems: RequirementItem[] | undefin
   return [...rawLines, ...extra].map((line, i) => `${prefix}.${i + 1} ${line}`);
 }
 
+// "กุ้งต้ม" / "กุ้งดิบ" — the noun phrase reused across the มาตรฐาน/สี lines here and the
+// ข้อ 2.1 inner-box headline, so productForm is only ever selected once per product.
+export function productFormLabel(form: ProductSpecDetail['productForm']): string {
+  return form === 'cooked' ? 'กุ้งต้ม' : form === 'raw' ? 'กุ้งดิบ' : '';
+}
+
 export function formatProductSpecLines(v: ProductSpecDetail, prefix: string): string[] {
   const lines: string[] = [];
-  if (v.standard) lines.push(`มาตรฐาน: ${v.standard}`);
-  if (v.color) lines.push(`สี: ${v.color}`);
+  const formLabel = productFormLabel(v.productForm);
+  if (formLabel) {
+    let line = `มาตรฐานการผลิต${formLabel}`;
+    if (v.standardCustomer) line += ` ลูกค้า${v.standardCustomer}`;
+    if (v.standardCode) line += ` ตาม Production STD : QA.STD.${v.standardCode}`;
+    lines.push(line);
+  }
+  if (formLabel || v.colorSizePlus) {
+    const colorParts = [formLabel, v.colorSizePlus && `${v.colorSizePlus}+`].filter(Boolean);
+    lines.push(`สี : ${colorParts.join(' ')}`);
+  }
   if (v.netWeightGrams || v.boxWeightGrams || v.afterGlazeWeightGrams || v.glazePercent || v.glazeMethod) {
     const parts = [
       v.netWeightGrams && `N.W. ${v.netWeightGrams}g`,
@@ -191,17 +209,20 @@ export function formatProductSpecLines(v: ProductSpecDetail, prefix: string): st
 }
 
 // Shared by the PackingDetailFields live preview and buildPackingDetailBlock below, so the
-// form preview and the printed line can never drift out of sync.
-export interface BoxLineContext { netWeightGrams: string; }
+// form preview and the printed line can never drift out of sync. The inner-box headline is
+// fully auto-composed from productForm (ข้อ 1) + brand, so it's never typed a second time;
+// the outer box's own free-text description (box material, e.g. "ลูกฟูกขาว") stays manual.
+export interface BoxLineContext { productForm: ProductSpecDetail['productForm']; brand: string; netWeightGrams: string; }
 
 export function composeInnerBoxLine(v: PackingDetail, ctx: BoxLineContext): string {
   const size = `${v.innerBoxWidthMm || '-'}x${v.innerBoxLengthMm || '-'}x${v.innerBoxHeightMm || '-'}`;
-  return `${v.innerBoxDesc || '-'} ${ctx.netWeightGrams || '-'} กรัม ขนาด ${size} mm. รหัส : ${v.innerBoxCode || '-'}`;
+  const desc = productFormLabel(ctx.productForm) || '-';
+  return `อินเนอร์${desc}${ctx.brand ? ` (${ctx.brand})` : ''} ${ctx.netWeightGrams || '-'} กรัม ขนาด ${size} mm. รหัส : ${v.innerBoxCode || '-'}`;
 }
 
 export function composeOuterBoxLine(v: PackingDetail, ctx: BoxLineContext): string {
   const size = `${v.outerBoxWidthMm || '-'}x${v.outerBoxLengthMm || '-'}x${v.outerBoxHeightMm || '-'}`;
-  return `${v.outerBoxDesc || '-'} ${ctx.netWeightGrams || '-'} กรัม ขนาด ${size} mm. รหัส : ${v.outerBoxCode || '-'}`;
+  return `กล่องนอก${v.outerBoxDesc || '-'} ${ctx.netWeightGrams || '-'} กรัม ขนาด ${size} mm. รหัส : ${v.outerBoxCode || '-'}`;
 }
 
 function checkedTexts(items: RequirementItem[]): string[] {
@@ -223,14 +244,16 @@ export interface PackingDetailBlock {
 }
 
 export function buildPackingDetailBlock(v: PackingDetail, prefix: string, ctx: BoxLineContext): PackingDetailBlock {
-  const hasInner = v.innerBoxDesc || v.innerBoxWidthMm || v.innerBoxLengthMm || v.innerBoxHeightMm || v.innerBoxCode;
+  const hasInner = ctx.productForm || v.innerBoxWidthMm || v.innerBoxLengthMm || v.innerBoxHeightMm || v.innerBoxCode;
   const hasOuter = v.outerBoxDesc || v.outerBoxWidthMm || v.outerBoxLengthMm || v.outerBoxHeightMm || v.outerBoxCode;
   let n = 0;
   const innerHeadline = hasInner ? `${prefix}.${++n} ${composeInnerBoxLine(v, ctx)}` : null;
   const outerHeadline = hasOuter ? `${prefix}.${++n} ${composeOuterBoxLine(v, ctx)}` : null;
 
   const tailSources = [
-    v.strapped ? `เชือกสายรัด: รัด สี ${v.strappingColor || '-'} ลักษณะ ${v.strappingStyle || '-'}` : 'เชือกสายรัด: ไม่รัด',
+    v.strapped
+      ? `เชือกสายรัด: รัด สี ${v.strappingColor || '-'} จำนวน ${v.strappingCount || '-'} เส้น ลักษณะ ${v.strappingStyle || '-'}`
+      : 'เชือกสายรัด: ไม่รัด',
     ...checkedTexts(v.extraItems ?? []),
   ];
   const tailLines = tailSources.map((line) => `${prefix}.${++n} ${line}`);

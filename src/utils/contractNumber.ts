@@ -17,10 +17,11 @@ export function generateContractNo(buyerCode: string, existingContracts: SaleCon
   return `${prefix}${next}`;
 }
 
-// Strips the " rev.N" / " PI.N" suffix a rewrite or Proforma Invoice copy adds to a contract
-// number — e.g. for the printed "Reference No." field, which always shows the plain base number.
+// Strips the " rev.N" / " PI.N" / " CS.N" suffix a rewrite, Proforma Invoice, or Custom Sale
+// Contract copy adds to a contract number — e.g. for the printed "Reference No." field, which
+// always shows the plain base number.
 export function baseContractNo(contractNo: string): string {
-  return contractNo.split(' rev.')[0].split(' PI.')[0];
+  return contractNo.split(' rev.')[0].split(' PI.')[0].split(' CS.')[0];
 }
 
 export function generateRevisionContractNo(
@@ -42,4 +43,16 @@ export function generateProformaInvoiceNo(
   const baseNo = baseContractNo(sourceContract.contractNo);
   const priorPI = existingContracts.filter((c) => c.contractNo.startsWith(`${baseNo} PI.`));
   return `${baseNo} PI.${priorPI.length + 1}`;
+}
+
+// Custom Sale Contract copies (same "Sales Contract" title, e.g. for a custom price) reuse the
+// source contract's number with a " CS.N" suffix — numbered independently of both Rewrite
+// revisions and Proforma Invoice copies.
+export function generateCustomSaleContractNo(
+  sourceContract: SaleContract,
+  existingContracts: SaleContract[]
+): string {
+  const baseNo = baseContractNo(sourceContract.contractNo);
+  const priorCs = existingContracts.filter((c) => c.contractNo.startsWith(`${baseNo} CS.`));
+  return `${baseNo} CS.${priorCs.length + 1}`;
 }

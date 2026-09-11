@@ -111,7 +111,7 @@ function collectPackingEntries(groups: LineGroup[], po: ProductionOrder, overrid
     .map((g) => {
       const pr = po.productRequirements.find((p) => p.productType === g.productType && (p.brand ?? '') === (g.brand ?? ''));
       const block = pr
-        ? buildPackingDetailBlock(pr.packingDetail, '2', { netWeightGrams: pr.productSpec.netWeightGrams })
+        ? buildPackingDetailBlock(pr.packingDetail, '2', { productForm: pr.productSpec.productForm, brand: g.brand ?? '', netWeightGrams: pr.productSpec.netWeightGrams })
         : { innerHeadline: null, topLidLines: [], bottomLidLines: [], outerHeadline: null, outerLines: [], tailLines: [] };
       return { label: `${getProductFullName(g.productType, overrides)}${g.brand ? ` "${g.brand}"` : ''}`, block, remark: pr?.packingDetailRemark };
     })

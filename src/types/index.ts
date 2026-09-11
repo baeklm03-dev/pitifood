@@ -56,9 +56,14 @@ export interface Buyer {
 }
 
 // ─── PO requirement fields (ข้อกำหนดอื่นๆ) — fixed schema, one per topic ──
+export type ProductForm = 'cooked' | 'raw' | '';
+
 export interface ProductSpecDetail {
-  standard: string;              // มาตรฐาน
-  color: string;                 // สี (free text, e.g. "กุ้งต้ม 24+")
+  productForm: ProductForm;      // กุ้งต้ม / กุ้งดิบ — drives the มาตรฐาน/สี lines below and the
+                                  // ข้อ 2.1 inner-box headline (so it's only selected once)
+  standardCustomer: string;      // มาตรฐาน — "ลูกค้า..." (optional, e.g. "ไต้หวัน")
+  standardCode: string;          // มาตรฐาน — suffix after the fixed "QA.STD." prefix (e.g. "TW.003")
+  colorSizePlus: string;         // สี — the "NN+" size number (dropdown 22-30, or custom)
   netWeightGrams: string;        // N.W. (ก่อนเคลือบน้ำ) — reused by the ข้อ 2.1/2.2 box headlines
   boxWeightGrams: string;        // น้ำหนัก (ระบุบนกล่อง) ...กรัม
   afterGlazeWeightGrams: string; // หลังเคลือบน้ำ — free text ("1000g+", "1,000g up", ...)
@@ -68,14 +73,13 @@ export interface ProductSpecDetail {
 }
 
 export interface PackingDetail {
-  innerBoxDesc: string;         // กล่องอินเนอร์ headline — free text (placeholder suggests product+brand)
   innerBoxWidthMm: string;
   innerBoxLengthMm: string;
   innerBoxHeightMm: string;     // กล่องอินเนอร์ ขนาด กว้าง x ยาว x สูง mm
   innerBoxCode: string;         // รหัสกล่อง (I-...) — see BoxCodeInput
   topLidItems: RequirementItem[];    // ฝาบน — addable free lines (e.g. stamp/checklist notes)
   bottomLidItems: RequirementItem[]; // ฝาล่าง — addable free lines
-  outerBoxDesc: string;         // กล่องนอก headline — free text (placeholder suggests product+brand)
+  outerBoxDesc: string;         // กล่องนอก — box type/material, free text (e.g. "ลูกฟูกขาว")
   outerBoxWidthMm: string;
   outerBoxLengthMm: string;
   outerBoxHeightMm: string;     // กล่องนอก ขนาด กว้าง x ยาว x สูง mm
@@ -83,6 +87,7 @@ export interface PackingDetail {
   outerBoxItems: RequirementItem[];  // กล่องนอก — addable free lines (flat, no ฝาบน/ฝาล่าง split)
   strapped: boolean;            // เชือกสายรัด: รัด / ไม่รัด
   strappingColor: string;       // ใช้เมื่อ strapped === true
+  strappingCount: string;       // จำนวนเส้น — ใช้เมื่อ strapped === true
   strappingStyle: string;       // ลักษณะการรัด
   extraItems?: RequirementItem[]; // custom numbered sub-items appended after the fixed ones (2.5+)
 }
@@ -147,7 +152,10 @@ export interface Signatory {
 
 export type ShipmentPeriod = 'early' | 'mid' | 'late';
 
-export type ContractDocType = 'sale_contract' | 'proforma_invoice';
+// 'custom_sale_contract' prints identically to 'sale_contract' (title stays "Sales Contract")
+// but is numbered independently ("... CS.N"), like 'proforma_invoice' — a separate editable
+// copy (e.g. to offer a custom price) that doesn't touch the Rewrite rev. sequence.
+export type ContractDocType = 'sale_contract' | 'proforma_invoice' | 'custom_sale_contract';
 
 export interface SaleContract {
   id: string;

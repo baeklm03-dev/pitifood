@@ -75,7 +75,11 @@ export function BrandView() {
         <RowsBlock label="PO ข้อ 1 — Product Spec" lines={formatProductSpecLines(brand.productSpec, '1')} remark={brand.productSpecRemark} />
         <RowsBlock
           label="PO ข้อ 2 — Packing Detail"
-          lines={formatPackingDetailLines(brand.packingDetail, '2', { netWeightGrams: brand.productSpec.netWeightGrams })}
+          lines={formatPackingDetailLines(brand.packingDetail, '2', {
+            productForm: brand.productSpec.productForm,
+            brand: brand.brandName,
+            netWeightGrams: brand.productSpec.netWeightGrams,
+          })}
           remark={brand.packingDetailRemark}
         />
         <Row label="Notes" value={brand.notes} />

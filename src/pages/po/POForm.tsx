@@ -541,8 +541,8 @@ export function POForm() {
                 <PackingDetailFields
                   fieldId={`po-packing-detail-${i}`}
                   buyerCode={buyerCode}
-                  productType={g.productType}
                   brand={g.brand}
+                  productForm={pr.productSpec.productForm}
                   netWeightGrams={pr.productSpec.netWeightGrams}
                   value={pr.packingDetail}
                   onChange={(v) => updateRequirement(g.productType, g.brand, { packingDetail: v })}

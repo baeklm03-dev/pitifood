@@ -1,5 +1,5 @@
 import React from 'react';
-import type { PackingDetail } from '../../types';
+import type { PackingDetail, ProductSpecDetail } from '../../types';
 import { Input } from './Input';
 import { BoxCodeInput } from './BoxCodeInput';
 import { RequirementChecklist } from './RequirementChecklist';
@@ -11,14 +11,14 @@ interface Props {
   /** Unique per rendered instance — this form can appear multiple times on one page (one per product group). */
   fieldId: string;
   buyerCode: string;
-  productType: string;
   brand: string;
+  productForm: ProductSpecDetail['productForm'];
   netWeightGrams: string;
 }
 
 const mmInput: React.CSSProperties = { width: '70px' };
 
-export function PackingDetailFields({ value, onChange, fieldId, buyerCode, productType, brand, netWeightGrams }: Props) {
+export function PackingDetailFields({ value, onChange, fieldId, buyerCode, brand, productForm, netWeightGrams }: Props) {
   const set = <K extends keyof PackingDetail>(key: K, v: PackingDetail[K]) =>
     onChange({ ...value, [key]: v });
 
@@ -29,16 +29,17 @@ export function PackingDetailFields({ value, onChange, fieldId, buyerCode, produ
   const sizeRow: React.CSSProperties = { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' };
   const previewStyle: React.CSSProperties = { fontSize: '11.5px', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '6px' };
 
-  const ctx: BoxLineContext = { netWeightGrams };
-  const innerPlaceholder = `อินเนอร์${productType}${brand ? ` (${brand})` : ''}`;
-  const outerPlaceholder = `กล่องนอก${productType}${brand ? ` ${brand}` : ''}`;
+  const ctx: BoxLineContext = { productForm, brand, netWeightGrams };
+  const outerPlaceholder = 'เช่น ลูกฟูกขาว';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
       <div>
         <label style={groupLabel}>กล่องอินเนอร์</label>
-        <Input value={value.innerBoxDesc} onChange={(e) => set('innerBoxDesc', e.target.value)} placeholder={innerPlaceholder} />
-        <div style={{ ...sizeRow, marginTop: '8px' }}>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 8px' }}>
+          ชื่อสินค้าดึงจาก "มาตรฐาน" ในข้อ 1 โดยอัตโนมัติ — กรอกแค่ขนาดและรหัสกล่อง
+        </p>
+        <div style={sizeRow}>
           <Input type="number" value={value.innerBoxWidthMm} onChange={(e) => set('innerBoxWidthMm', e.target.value)} placeholder="กว้าง" style={mmInput} />
           <span style={{ color: 'var(--text-muted)' }}>x</span>
           <Input type="number" value={value.innerBoxLengthMm} onChange={(e) => set('innerBoxLengthMm', e.target.value)} placeholder="ยาว" style={mmInput} />
@@ -96,6 +97,7 @@ export function PackingDetailFields({ value, onChange, fieldId, buyerCode, produ
           {value.strapped && (
             <>
               <Input value={value.strappingColor} onChange={(e) => set('strappingColor', e.target.value)} placeholder="สีสายรัด" style={{ maxWidth: '160px' }} />
+              <Input type="number" value={value.strappingCount} onChange={(e) => set('strappingCount', e.target.value)} placeholder="จำนวนเส้น" style={{ maxWidth: '110px' }} />
               <Input value={value.strappingStyle} onChange={(e) => set('strappingStyle', e.target.value)} placeholder="ลักษณะการรัด" style={{ maxWidth: '160px' }} />
             </>
           )}

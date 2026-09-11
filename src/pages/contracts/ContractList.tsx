@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Edit2, Printer, Upload, FileUp, RefreshCw, FileText, Lock, MoreVertical, FileSignature } from 'lucide-react';
+import { Plus, Search, Edit2, Printer, Upload, FileUp, RefreshCw, FileText, Lock, MoreVertical, FileSignature, Copy } from 'lucide-react';
 import { contractService } from '../../services/contractService';
 import { buyerService } from '../../services/buyerService';
-import { generateRevisionContractNo, generateProformaInvoiceNo } from '../../utils/contractNumber';
+import { generateRevisionContractNo, generateProformaInvoiceNo, generateCustomSaleContractNo } from '../../utils/contractNumber';
 import { extractError } from '../../utils/errors';
 import { formatShipment } from '../../utils/shipment';
 import { useAuth } from '../../hooks/useAuth';
@@ -56,6 +56,11 @@ export function ContractList() {
   const [piNumber, setPiNumber] = useState('');
   const [piError, setPiError] = useState<string | null>(null);
   const [creatingPi, setCreatingPi] = useState(false);
+
+  const [csTarget, setCsTarget] = useState<SaleContract | null>(null);
+  const [csNumber, setCsNumber] = useState('');
+  const [csError, setCsError] = useState<string | null>(null);
+  const [creatingCs, setCreatingCs] = useState(false);
 
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
 
@@ -176,6 +181,43 @@ export function ContractList() {
       setPiError(extractError(err, 'Failed to create Proforma Invoice'));
     } finally {
       setCreatingPi(false);
+    }
+  };
+
+  // Opens the Custom Sale Contract modal with an editable, pre-filled document number
+  // ("{source no.} CS.N") — same idea as Proforma Invoice, but the printed title stays
+  // "Sales Contract" since this is still a real contract, just with e.g. a custom price.
+  const openCs = (c: SaleContract) => {
+    setCsTarget(c);
+    setCsNumber(generateCustomSaleContractNo(c, contracts));
+    setCsError(null);
+  };
+
+  const handleCreateCs = async () => {
+    if (!csTarget) return;
+    const no = csNumber.trim();
+    if (!no) { setCsError('กรอกเลขที่เอกสาร'); return; }
+    setCreatingCs(true);
+    setCsError(null);
+    try {
+      const cs = await contractService.create({
+        ...csTarget,
+        contractNo: no,
+        docType: 'custom_sale_contract',
+        revision: 0,
+        parentContractId: undefined,
+        status: 'draft',
+        isLocked: false,
+        signedFileUrl: undefined,
+        signedFileName: undefined,
+        signedAt: undefined,
+      });
+      setCsTarget(null);
+      navigate(`/contracts/${cs.id}/edit`);
+    } catch (err) {
+      setCsError(extractError(err, 'Failed to create Custom Sale Contract'));
+    } finally {
+      setCreatingCs(false);
     }
   };
 
@@ -345,6 +387,7 @@ export function ContractList() {
                         </Link>
                         {c.revision > 0 && <span style={{ fontSize: '10px', color: 'var(--accent)', background: '#FEF5E7', padding: '1px 5px', borderRadius: '3px', fontWeight: 600 }}>rev</span>}
                         {c.docType === 'proforma_invoice' && <span style={{ fontSize: '10px', color: '#2E6DA4', background: '#EBF5FB', padding: '1px 5px', borderRadius: '3px', fontWeight: 600 }}>PI</span>}
+                        {c.docType === 'custom_sale_contract' && <span style={{ fontSize: '10px', color: '#7D3C98', background: '#F5EEF8', padding: '1px 5px', borderRadius: '3px', fontWeight: 600 }}>CS</span>}
                       </div>
                     </td>
                     <td style={tdStyle}>
@@ -415,6 +458,14 @@ export function ContractList() {
                                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                                 >
                                   <FileSignature size={14} /> Proforma Invoice
+                                </button>
+                                <button
+                                  onClick={() => { setMenuOpenId(null); openCs(c); }}
+                                  style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '9px 12px', fontSize: '13px', fontWeight: 500, color: 'var(--text)', background: 'none', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', textAlign: 'left' }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg)')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                                >
+                                  <Copy size={14} /> Custom Sale Contract
                                 </button>
                               </div>
                             )}
@@ -562,6 +613,37 @@ export function ContractList() {
             placeholder="เช่น A01-2501 PI.1"
           />
           {piError && <p style={{ fontSize: '12px', color: 'var(--danger)' }}>{piError}</p>}
+        </div>
+      </Modal>
+
+      {/* Create Custom Sale Contract Modal */}
+      <Modal
+        open={!!csTarget}
+        onClose={() => setCsTarget(null)}
+        title="Create Custom Sale Contract"
+        width={440}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setCsTarget(null)}>Cancel</Button>
+            <Button loading={creatingCs} onClick={handleCreateCs} disabled={!csNumber.trim()}>
+              <Copy size={14} /> Create Custom Sale Contract
+            </Button>
+          </>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+            สร้างสำเนาที่แก้ไขได้จาก <strong style={{ color: 'var(--text)' }}>{csTarget?.contractNo}</strong> — หัวเอกสารยังเป็น
+            "Sales Contract" เหมือนเดิม (ไม่เปลี่ยนเป็น Proforma Invoice) ใช้สำหรับปรับราคาหรือรายละเอียดแบบ custom
+            แยกอิสระจาก revision ของ Rewrite และจาก Proforma Invoice
+          </p>
+          <Input
+            label="เลขที่เอกสาร *"
+            value={csNumber}
+            onChange={(e) => { setCsNumber(e.target.value); setCsError(null); }}
+            placeholder="เช่น A01-2501 CS.1"
+          />
+          {csError && <p style={{ fontSize: '12px', color: 'var(--danger)' }}>{csError}</p>}
         </div>
       </Modal>
     </div>

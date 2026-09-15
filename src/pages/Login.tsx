@@ -67,9 +67,6 @@ export function Login() {
             alt="PITI FOODS"
             style={{ height: '100px', objectFit: 'contain', display: 'block', margin: '0 auto 14px' }}
           />
-          <h2 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--primary)', margin: 0, letterSpacing: '-0.01em' }}>
-            Sale Contract System
-          </h2>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
             Sign in to continue
           </p>

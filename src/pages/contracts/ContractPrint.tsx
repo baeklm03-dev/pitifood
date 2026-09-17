@@ -324,7 +324,7 @@ export function ContractPrint() {
           <table style={{ borderCollapse: 'collapse', marginBottom: '10pt' }}>
             <tbody>
               {[
-                ['Packing', uniquePacking.join(', ') || '—'],
+                ['Packing', uniquePacking.length ? `${contract.packingStyle ? contract.packingStyle + ' ' : ''}${uniquePacking.join(', ')}` : '—'],
                 ['Total Quantity', `${containerLabel}   ( ${fmtNum(grandQty, 0)} Ctns Or ${fmtNum(grandWeight, 0)} Kgs)`],
                 ['Total Amount', `USD ${fmtNum(grandAmount)}`],
                 ['Shipment', formatShipment(contract.shipmentPeriod, contract.shipmentMonth, contract.shipmentYear)],

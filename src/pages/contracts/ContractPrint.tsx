@@ -110,7 +110,7 @@ export function ContractPrint() {
   const uniquePacking = Array.from(new Set(contract.productLines.map((p) => p.packing).filter(Boolean)));
   const currency = contract.currency || 'USD';
   const containerLabel = contract.containerQty && contract.containerType
-    ? `${contract.containerQty} x ${contract.containerType}.`
+    ? `${contract.containerQty} x ${contract.containerType.replace(/^(\d+)(?=\D)/, '$1 ')}.`
     : '—';
 
   const handleExportPdf = async () => {

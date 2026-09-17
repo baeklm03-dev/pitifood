@@ -5,7 +5,7 @@ const MONTH_NAMES = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-const PERIOD_LABEL: Record<ShipmentPeriod, string> = { early: 'Early', mid: 'Mid', late: 'End of' };
+const PERIOD_LABEL: Record<ShipmentPeriod, string> = { early: 'Early of', mid: 'Mid of', late: 'End of' };
 
 export function formatShipment(period?: ShipmentPeriod, month?: number, year?: number): string {
   if (!period || !month || !year) return '—';

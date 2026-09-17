@@ -38,7 +38,7 @@ const TODAY = new Date().toISOString().split('T')[0];
 const CUSTOM = '__custom__';
 const OTHER = '__other__';
 
-const CONTAINER_TYPE_OPTIONS = ['20FCL', '40FCL'];
+const CONTAINER_TYPE_OPTIONS = ['20 FCL', '40 FCL'];
 const PACKING_STYLE_BASE = ['Semi-IQF', 'IQF'];
 const INCOTERM_OPTIONS = ['FOB', 'CNF', 'CFR', 'CIF', 'EXW', 'DDP'].map((v) => ({ value: v, label: v }));
 

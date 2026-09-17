@@ -108,6 +108,7 @@ export function ContractPrint() {
   const grandWeight = contract.productLines.reduce((s, p) => s + p.totalWeight, 0);
   const grandAmount = contract.productLines.reduce((s, p) => s + p.totalAmount, 0);
   const uniquePacking = Array.from(new Set(contract.productLines.map((p) => p.packing).filter(Boolean)));
+  const currency = contract.currency || 'USD';
   const containerLabel = contract.containerQty && contract.containerType
     ? `${contract.containerQty} x ${contract.containerType}.`
     : '—';
@@ -244,7 +245,7 @@ export function ContractPrint() {
             const groupWeight = group.lines.reduce((s, p) => s + p.totalWeight, 0);
             const groupAmount = group.lines.reduce((s, p) => s + p.totalAmount, 0);
             const brandLabel = group.brand ? ` "${group.brand}"` : '';
-            // Unit price is quoted per the row's size unit (USD/kg or USD/lb) — headers
+            // Unit price is quoted per the row's size unit (e.g. USD/kg or USD/lb) — headers
             // must follow it instead of always reading "kg". Net weight (Quantity(n.w))
             // stays in kg regardless, since it's always entered as kg per carton.
             const priceUnit = group.lines[0]?.sizeUnit === 'Lb' ? 'lb' : 'kg';
@@ -271,8 +272,8 @@ export function ContractPrint() {
                       <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>{contract.packingStyle || ''}</th>
                       <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>ctns</th>
                       <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>kg</th>
-                      <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>USD/{priceUnit}</th>
-                      <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>USD</th>
+                      <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>{currency}/{priceUnit}</th>
+                      <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>{currency}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -326,7 +327,7 @@ export function ContractPrint() {
               {[
                 ['Packing', uniquePacking.length ? `${contract.packingStyle ? contract.packingStyle + ' ' : ''}${uniquePacking.join(', ')}` : '—'],
                 ['Total Quantity', `${containerLabel}   ( ${fmtNum(grandQty, 0)} Ctns Or ${fmtNum(grandWeight, 0)} Kgs)`],
-                ['Total Amount', `USD ${fmtNum(grandAmount)}`],
+                ['Total Amount', `${currency} ${fmtNum(grandAmount)}`],
                 ['Shipment', formatShipment(contract.shipmentPeriod, contract.shipmentMonth, contract.shipmentYear)],
                 ['Shipped From', contract.portOfLoading || '—'],
                 ['Destination', contract.portOfDischarge || '—'],

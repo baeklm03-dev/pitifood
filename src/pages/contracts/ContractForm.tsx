@@ -14,6 +14,7 @@ import { Button } from '../../components/UI/Button';
 import { Input, Textarea, Select } from '../../components/UI/Input';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 import { SHIPMENT_PERIOD_OPTIONS, SHIPMENT_MONTH_OPTIONS } from '../../utils/shipment';
+import { CURRENCY_OPTIONS, DEFAULT_CURRENCY } from '../../utils/currency';
 import type { ShipmentPeriod } from '../../types';
 
 function uid() {
@@ -170,6 +171,7 @@ interface FormState {
   customContainerType: string; // used when containerType === OTHER
   packingStyle: string;        // selected, or OTHER sentinel
   customPackingStyle: string;  // used when packingStyle === OTHER
+  currency: string;
   rows: PRow[];
   signatories: Signatory[];
 }
@@ -219,6 +221,7 @@ export function ContractForm() {
     paymentTerms: '', containerQty: '',
     containerType: '', customContainerType: '',
     packingStyle: '', customPackingStyle: '',
+    currency: DEFAULT_CURRENCY,
     rows: [], signatories: defaultSignatories(),
   });
   const [errors, setErrors] = useState<FormErrors>({});
@@ -254,6 +257,7 @@ export function ContractForm() {
           customContainerType: ctIsOther ? ct : '',
           packingStyle: psIsOther ? OTHER : ps,
           customPackingStyle: psIsOther ? ps : '',
+          currency: existing.currency || DEFAULT_CURRENCY,
           rows: existing.productLines.map((pl) => productLineToRow(pl, br)),
           signatories: existing.signatories,
         });
@@ -404,6 +408,7 @@ export function ContractForm() {
         containerQty: form.containerQty ? parseInt(form.containerQty, 10) : undefined,
         containerType: containerType || undefined,
         packingStyle: packingStyle || undefined,
+        currency: form.currency || DEFAULT_CURRENCY,
         productLines: form.rows.map(rowToProductLine),
         signatories: form.signatories,
         status,
@@ -565,7 +570,15 @@ export function ContractForm() {
       <div style={cardStyle}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', paddingBottom: '8px', borderBottom: '1px solid var(--border)' }}>
           <p style={{ ...sectionTitle, marginBottom: 0, paddingBottom: 0, borderBottom: 'none' }}>2 — Product Lines</p>
-          <Button size="sm" onClick={addProduct} disabled={!form.buyerId}><Plus size={13} /> Add Product</Button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+              Currency
+              <select value={form.currency} onChange={(e) => setForm((p) => ({ ...p, currency: e.target.value }))} style={{ ...cellInput, width: 'auto', padding: '5px 8px' }}>
+                {CURRENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </label>
+            <Button size="sm" onClick={addProduct} disabled={!form.buyerId}><Plus size={13} /> Add Product</Button>
+          </div>
         </div>
 
         {errors.rows && <p style={{ color: 'var(--danger)', fontSize: '12px', marginBottom: '10px' }}>{errors.rows}</p>}
@@ -586,7 +599,7 @@ export function ContractForm() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '960px', fontSize: '12px' }}>
                   <thead>
                     <tr style={{ background: 'var(--bg)' }}>
-                      {['#', 'Product Type', 'Size', 'Unit', 'Brand', 'Packing', 'Quantity ctns', 'NW/Ctn (kg)', 'Quantity(n.w) kg', 'Price USD/kg', 'Amount USD', ''].map((h, i) => (
+                      {['#', 'Product Type', 'Size', 'Unit', 'Brand', 'Packing', 'Quantity ctns', 'NW/Ctn (kg)', 'Quantity(n.w) kg', `Price ${form.currency}/kg`, `Amount ${form.currency}`, ''].map((h, i) => (
                         <th key={i} style={{ padding: '7px 6px', textAlign: i >= 6 && i <= 10 ? 'right' : 'left', fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', borderBottom: '2px solid var(--border)', whiteSpace: 'nowrap' }}>
                           {h}
                         </th>
@@ -692,7 +705,7 @@ export function ContractForm() {
                       <td style={{ padding: '8px 6px', borderTop: '2px solid var(--border)' }}></td>
                       <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace', borderTop: '2px solid var(--border)' }}>{groupTotals.weight > 0 ? fmt2(groupTotals.weight) : '—'}</td>
                       <td style={{ padding: '8px 6px', borderTop: '2px solid var(--border)' }}></td>
-                      <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace', borderTop: '2px solid var(--border)', color: 'var(--primary)' }}>{groupTotals.amount > 0 ? `USD ${fmt2(groupTotals.amount)}` : '—'}</td>
+                      <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace', borderTop: '2px solid var(--border)', color: 'var(--primary)' }}>{groupTotals.amount > 0 ? `${form.currency} ${fmt2(groupTotals.amount)}` : '—'}</td>
                       <td style={{ borderTop: '2px solid var(--border)' }}></td>
                     </tr>
                   </tbody>
@@ -714,7 +727,7 @@ export function ContractForm() {
             <span>Grand Total —</span>
             <span>{totals.qty > 0 ? totals.qty.toLocaleString() : '—'} ctns</span>
             <span>{totals.weight > 0 ? fmt2(totals.weight) : '—'} kg</span>
-            <span style={{ color: 'var(--primary)' }}>{totals.amount > 0 ? `USD ${fmt2(totals.amount)}` : '—'}</span>
+            <span style={{ color: 'var(--primary)' }}>{totals.amount > 0 ? `${form.currency} ${fmt2(totals.amount)}` : '—'}</span>
           </div>
         )}
       </div>

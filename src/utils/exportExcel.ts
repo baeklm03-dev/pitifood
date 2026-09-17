@@ -37,9 +37,10 @@ export function exportToExcel(contracts: SaleContract[]) {
       'Incoterm': c.incoterm ?? '',
       'Payment Terms': c.paymentTerms,
       'Status': c.status.charAt(0).toUpperCase() + c.status.slice(1),
+      'Currency': c.currency || 'USD',
       'Total Qty (Ctns)': totalQty,
       'Total Net Wt (kg)': totalNetWt,
-      'Total Amount (USD)': totalAmt,
+      'Total Amount': totalAmt,
       'Signed File': c.signedFileName ?? '',
       'Signed Date': fmtDate(c.signedAt),
       'Created By': c.createdByName ?? '',
@@ -63,8 +64,9 @@ export function exportToExcel(contracts: SaleContract[]) {
       'Qty (Ctns)': p.quantity,
       'Net Wt/Ctn (kg)': p.netWeightPerCarton,
       'Total Net Wt (kg)': +p.totalWeight.toFixed(3),
-      'Unit Price (USD)': p.unitPrice,
-      'Amount (USD)': +p.totalAmount.toFixed(2),
+      'Currency': c.currency || 'USD',
+      'Unit Price': p.unitPrice,
+      'Amount': +p.totalAmount.toFixed(2),
     }))
   );
   const ws2 = XLSX.utils.json_to_sheet(sheet2Data);

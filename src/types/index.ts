@@ -177,6 +177,7 @@ export interface SaleContract {
   containerQty?: number;
   containerType?: string;
   packingStyle?: string;
+  currency?: string;
   productLines: ProductLine[];
   signatories: Signatory[];
   remarks?: string;

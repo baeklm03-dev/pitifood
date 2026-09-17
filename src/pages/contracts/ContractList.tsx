@@ -6,6 +6,7 @@ import { buyerService } from '../../services/buyerService';
 import { generateRevisionContractNo, generateProformaInvoiceNo, generateCustomSaleContractNo } from '../../utils/contractNumber';
 import { extractError } from '../../utils/errors';
 import { formatShipment } from '../../utils/shipment';
+import { fmtMoney } from '../../utils/currency';
 import { useAuth } from '../../hooks/useAuth';
 import type { SaleContract, ContractStatus, Buyer } from '../../types';
 import { Button } from '../../components/UI/Button';
@@ -19,9 +20,6 @@ const TODAY = new Date().toISOString().split('T')[0];
 
 const fmtDate = (d?: string) =>
   d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-
-const fmtUSD = (n: number) =>
-  'USD ' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 type BadgeVariant = 'neutral' | 'primary' | 'success' | 'warning';
 const statusVariant = (s: ContractStatus): BadgeVariant =>
@@ -358,7 +356,7 @@ export function ContractList() {
                 <th style={thStyle}>Buyer</th>
                 <th style={thStyle}>Offer Date</th>
                 <th style={thStyle}>Shipment</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>Total (USD)</th>
+                <th style={{ ...thStyle, textAlign: 'right' }}>Total</th>
                 <th style={thStyle}>Status</th>
                 <th style={thStyle}>By</th>
                 <th style={thStyle}>Signed File</th>
@@ -396,7 +394,7 @@ export function ContractList() {
                     </td>
                     <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>{fmtDate(c.offerDate)}</td>
                     <td style={{ ...tdStyle, whiteSpace: 'nowrap' }}>{formatShipment(c.shipmentPeriod, c.shipmentMonth, c.shipmentYear)}</td>
-                    <td style={{ ...tdStyle, textAlign: 'right', fontFamily: 'monospace', fontWeight: 500 }}>{fmtUSD(totalAmount(c))}</td>
+                    <td style={{ ...tdStyle, textAlign: 'right', fontFamily: 'monospace', fontWeight: 500 }}>{fmtMoney(totalAmount(c), c.currency)}</td>
                     <td style={tdStyle}>
                       <Badge variant={statusVariant(c.status)}>{c.isLocked && '🔒 '}{statusLabel[c.status]}</Badge>
                     </td>

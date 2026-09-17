@@ -18,10 +18,10 @@ const fmtDate = (d?: string) =>
 const fmtNum = (n: number, dec = 0) =>
   n.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec });
 
-const fmtUSD = (n: number) => {
-  if (n === 0) return '$0';
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`;
-  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+const fmtCompact = (n: number) => {
+  if (n === 0) return '0';
+  if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}M`;
+  return n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 };
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -77,11 +77,13 @@ export function Dashboard() {
 
   const globalStats = useMemo(() => {
     const totalVal = contracts.reduce((sum, c) => sum + c.productLines.reduce((s, p) => s + p.totalAmount, 0), 0);
+    const currencies = new Set(contracts.map((c) => c.currency || 'USD'));
     return {
       total: contracts.length,
       active: contracts.filter((c) => c.status === 'draft' || c.status === 'finalized').length,
       signed: contracts.filter((c) => c.status === 'signed').length,
       totalValue: totalVal,
+      currencyLabel: currencies.size === 1 ? [...currencies][0] : 'mixed currencies',
     };
   }, [contracts]);
 
@@ -113,11 +115,15 @@ export function Dashboard() {
     return Object.values(map).sort((a, b) => (parseInt(a.size) || 0) - (parseInt(b.size) || 0));
   }, [filtered]);
 
-  const filteredTotals = useMemo(() => ({
-    qty: filtered.reduce((s, c) => s + c.productLines.reduce((a, p) => a + p.quantity, 0), 0),
-    wt:  filtered.reduce((s, c) => s + c.productLines.reduce((a, p) => a + p.totalWeight, 0), 0),
-    amt: filtered.reduce((s, c) => s + c.productLines.reduce((a, p) => a + p.totalAmount, 0), 0),
-  }), [filtered]);
+  const filteredTotals = useMemo(() => {
+    const currencies = new Set(filtered.map((c) => c.currency || 'USD'));
+    return {
+      qty: filtered.reduce((s, c) => s + c.productLines.reduce((a, p) => a + p.quantity, 0), 0),
+      wt: filtered.reduce((s, c) => s + c.productLines.reduce((a, p) => a + p.totalWeight, 0), 0),
+      amt: filtered.reduce((s, c) => s + c.productLines.reduce((a, p) => a + p.totalAmount, 0), 0),
+      currencyLabel: currencies.size === 1 ? [...currencies][0] : 'mixed',
+    };
+  }, [filtered]);
 
   const availableYears = useMemo(() =>
     Array.from(new Set(contracts.map((c) => new Date(c.offerDate).getFullYear().toString()))).sort().reverse(),
@@ -168,7 +174,7 @@ export function Dashboard() {
           { label: 'Total Contracts', value: globalStats.total, icon: <FileText size={32} />, bg: 'var(--primary)', to: '/contracts' },
           { label: 'Active (Draft + Finalized)', value: globalStats.active, icon: <TrendingUp size={32} />, bg: 'var(--primary-light)', to: '/contracts' },
           { label: 'Signed', value: globalStats.signed, icon: <Lock size={32} />, bg: 'var(--locked)', to: '/contracts' },
-          { label: 'Total Value (USD)', value: fmtUSD(globalStats.totalValue), icon: <DollarSign size={32} />, bg: 'var(--accent)', to: '/contracts' },
+          { label: `Total Value (${globalStats.currencyLabel})`, value: fmtCompact(globalStats.totalValue), icon: <DollarSign size={32} />, bg: 'var(--accent)', to: '/contracts' },
         ].map((card) => (
           <Link key={card.label} to={card.to} style={{ background: card.bg, borderRadius: 'var(--radius-lg)', padding: '22px', color: '#fff', textDecoration: 'none', position: 'relative', overflow: 'hidden', display: 'block', transition: 'filter 0.15s, transform 0.15s, box-shadow 0.15s', boxShadow: 'var(--shadow-sm)' }}
             onMouseEnter={(e) => { e.currentTarget.style.filter = 'brightness(1.08)'; e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
@@ -239,7 +245,7 @@ export function Dashboard() {
                 <th style={thStyle}>Products</th>
                 <th style={{ ...thStyle, textAlign: 'right' }}>Total Qty</th>
                 <th style={{ ...thStyle, textAlign: 'right' }}>Net Wt (kg)</th>
-                <th style={{ ...thStyle, textAlign: 'right' }}>Amount (USD)</th>
+                <th style={{ ...thStyle, textAlign: 'right' }}>Amount</th>
                 <th style={thStyle}>Status</th>
               </tr>
             </thead>
@@ -273,7 +279,7 @@ export function Dashboard() {
                         <td style={{ ...tdStyle, maxWidth: '200px' }}><span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{products || '—'}</span></td>
                         <td style={{ ...tdStyle, textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' }}>{fmtNum(totalQty)}</td>
                         <td style={{ ...tdStyle, textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' }}>{fmtNum(totalWt, 2)}</td>
-                        <td style={{ ...tdStyle, textAlign: 'right', fontFamily: 'monospace', fontSize: '12px', fontWeight: 500, color: 'var(--primary)' }}>{fmtNum(totalAmt, 2)}</td>
+                        <td style={{ ...tdStyle, textAlign: 'right', fontFamily: 'monospace', fontSize: '12px', fontWeight: 500, color: 'var(--primary)' }}>{c.currency || 'USD'} {fmtNum(totalAmt, 2)}</td>
                         <td style={tdStyle}><Badge variant={statusVariant(c.status)}>{c.isLocked && '🔒 '}{statusLabel[c.status]}</Badge></td>
                       </tr>
                     );
@@ -284,7 +290,7 @@ export function Dashboard() {
                     </td>
                     <td style={{ ...tdStyle, textAlign: 'right', fontFamily: 'monospace', borderTop: '2px solid var(--border)', color: 'var(--primary)' }}>{fmtNum(filteredTotals.qty)}</td>
                     <td style={{ ...tdStyle, textAlign: 'right', fontFamily: 'monospace', borderTop: '2px solid var(--border)', color: 'var(--primary)' }}>{fmtNum(filteredTotals.wt, 2)}</td>
-                    <td style={{ ...tdStyle, textAlign: 'right', fontFamily: 'monospace', borderTop: '2px solid var(--border)', color: 'var(--primary)' }}>{fmtNum(filteredTotals.amt, 2)}</td>
+                    <td style={{ ...tdStyle, textAlign: 'right', fontFamily: 'monospace', borderTop: '2px solid var(--border)', color: 'var(--primary)' }}>{filteredTotals.currencyLabel} {fmtNum(filteredTotals.amt, 2)}</td>
                     <td style={{ borderTop: '2px solid var(--border)' }} />
                   </tr>
                 </>
@@ -329,15 +335,16 @@ export function Dashboard() {
             <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>(filtered)</span>
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead><tr><th style={thStyle}>Buyer</th><th style={{ ...thStyle, textAlign: 'right' }}>Contracts</th><th style={{ ...thStyle, textAlign: 'right' }}>Total Qty</th><th style={{ ...thStyle, textAlign: 'right' }}>Amount (USD)</th></tr></thead>
+            <thead><tr><th style={thStyle}>Buyer</th><th style={{ ...thStyle, textAlign: 'right' }}>Contracts</th><th style={{ ...thStyle, textAlign: 'right' }}>Total Qty</th><th style={{ ...thStyle, textAlign: 'right' }}>Amount</th></tr></thead>
             <tbody>
               {(() => {
-                const buyerMap: Record<string, { name: string; count: number; qty: number; amt: number }> = {};
+                const buyerMap: Record<string, { name: string; count: number; qty: number; amt: number; currencies: Set<string> }> = {};
                 filtered.forEach((c) => {
-                  if (!buyerMap[c.buyerCode]) buyerMap[c.buyerCode] = { name: c.buyerName, count: 0, qty: 0, amt: 0 };
+                  if (!buyerMap[c.buyerCode]) buyerMap[c.buyerCode] = { name: c.buyerName, count: 0, qty: 0, amt: 0, currencies: new Set() };
                   buyerMap[c.buyerCode].count++;
                   buyerMap[c.buyerCode].qty += c.productLines.reduce((s, p) => s + p.quantity, 0);
                   buyerMap[c.buyerCode].amt += c.productLines.reduce((s, p) => s + p.totalAmount, 0);
+                  buyerMap[c.buyerCode].currencies.add(c.currency || 'USD');
                 });
                 const rows = Object.entries(buyerMap).sort((a, b) => b[1].amt - a[1].amt);
                 if (!rows.length) return <tr><td colSpan={4} style={{ ...tdStyle, textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: '12px' }}>No data</td></tr>;
@@ -349,7 +356,7 @@ export function Dashboard() {
                     <td style={tdStyle}><div style={{ fontWeight: 500 }}>{row.name}</div><div style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{code}</div></td>
                     <td style={{ ...tdStyle, textAlign: 'right', color: 'var(--text-muted)' }}>{row.count}</td>
                     <td style={{ ...tdStyle, textAlign: 'right', fontFamily: 'monospace' }}>{fmtNum(row.qty)}</td>
-                    <td style={{ ...tdStyle, textAlign: 'right', fontFamily: 'monospace', fontWeight: 500, color: 'var(--primary)' }}>{fmtNum(row.amt, 2)}</td>
+                    <td style={{ ...tdStyle, textAlign: 'right', fontFamily: 'monospace', fontWeight: 500, color: 'var(--primary)' }}>{row.currencies.size === 1 ? [...row.currencies][0] : 'mixed'} {fmtNum(row.amt, 2)}</td>
                   </tr>
                 ));
               })()}

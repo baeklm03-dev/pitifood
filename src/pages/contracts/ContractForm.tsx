@@ -14,7 +14,7 @@ import { Button } from '../../components/UI/Button';
 import { Input, Textarea, Select } from '../../components/UI/Input';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 import { SHIPMENT_PERIOD_OPTIONS, SHIPMENT_MONTH_OPTIONS } from '../../utils/shipment';
-import { CURRENCY_OPTIONS, DEFAULT_CURRENCY } from '../../utils/currency';
+import { CURRENCIES, CURRENCY_OPTIONS, DEFAULT_CURRENCY } from '../../utils/currency';
 import type { ShipmentPeriod } from '../../types';
 
 function uid() {
@@ -171,7 +171,8 @@ interface FormState {
   customContainerType: string; // used when containerType === OTHER
   packingStyle: string;        // selected, or OTHER sentinel
   customPackingStyle: string;  // used when packingStyle === OTHER
-  currency: string;
+  currency: string;         // selected, or OTHER sentinel
+  customCurrency: string;   // used when currency === OTHER
   rows: PRow[];
   signatories: Signatory[];
 }
@@ -221,7 +222,7 @@ export function ContractForm() {
     paymentTerms: '', containerQty: '',
     containerType: '', customContainerType: '',
     packingStyle: '', customPackingStyle: '',
-    currency: DEFAULT_CURRENCY,
+    currency: DEFAULT_CURRENCY, customCurrency: '',
     rows: [], signatories: defaultSignatories(),
   });
   const [errors, setErrors] = useState<FormErrors>({});
@@ -241,6 +242,8 @@ export function ContractForm() {
         const ctIsOther = ct !== '' && !CONTAINER_TYPE_OPTIONS.includes(ct);
         const ps = existing.packingStyle ?? '';
         const psIsOther = ps !== '' && !PACKING_STYLE_BASE.includes(ps);
+        const cur = existing.currency || DEFAULT_CURRENCY;
+        const curIsOther = !(CURRENCIES as readonly string[]).includes(cur);
         setForm({
           buyerId: existing.buyerId,
           subCompanyId: existing.subCompanyId ?? '',
@@ -257,7 +260,8 @@ export function ContractForm() {
           customContainerType: ctIsOther ? ct : '',
           packingStyle: psIsOther ? OTHER : ps,
           customPackingStyle: psIsOther ? ps : '',
-          currency: existing.currency || DEFAULT_CURRENCY,
+          currency: curIsOther ? OTHER : cur,
+          customCurrency: curIsOther ? cur : '',
           rows: existing.productLines.map((pl) => productLineToRow(pl, br)),
           signatories: existing.signatories,
         });
@@ -366,6 +370,7 @@ export function ContractForm() {
 
   const totals = sumRows(form.rows);
   const rowGroups = groupRowsByProduct(form.rows);
+  const currencyLabel = (form.currency === OTHER ? form.customCurrency : form.currency) || DEFAULT_CURRENCY;
 
   const validate = (): boolean => {
     const e: FormErrors = {};
@@ -388,6 +393,7 @@ export function ContractForm() {
 
       const containerType = form.containerType === OTHER ? form.customContainerType : form.containerType;
       const packingStyle = form.packingStyle === OTHER ? form.customPackingStyle : form.packingStyle;
+      const currency = (form.currency === OTHER ? form.customCurrency : form.currency).trim().toUpperCase();
 
       const contract = {
         contractNo: no,
@@ -408,7 +414,7 @@ export function ContractForm() {
         containerQty: form.containerQty ? parseInt(form.containerQty, 10) : undefined,
         containerType: containerType || undefined,
         packingStyle: packingStyle || undefined,
-        currency: form.currency || DEFAULT_CURRENCY,
+        currency: currency || DEFAULT_CURRENCY,
         productLines: form.rows.map(rowToProductLine),
         signatories: form.signatories,
         status,
@@ -575,8 +581,18 @@ export function ContractForm() {
               Currency
               <select value={form.currency} onChange={(e) => setForm((p) => ({ ...p, currency: e.target.value }))} style={{ ...cellInput, width: 'auto', padding: '5px 8px' }}>
                 {CURRENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                <option value={OTHER}>— Other —</option>
               </select>
             </label>
+            {form.currency === OTHER && (
+              <input
+                value={form.customCurrency}
+                onChange={(e) => setForm((p) => ({ ...p, customCurrency: e.target.value.toUpperCase() }))}
+                placeholder="e.g. SGD"
+                maxLength={6}
+                style={{ ...cellInput, width: '80px' }}
+              />
+            )}
             <Button size="sm" onClick={addProduct} disabled={!form.buyerId}><Plus size={13} /> Add Product</Button>
           </div>
         </div>
@@ -599,7 +615,7 @@ export function ContractForm() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '960px', fontSize: '12px' }}>
                   <thead>
                     <tr style={{ background: 'var(--bg)' }}>
-                      {['#', 'Product Type', 'Size', 'Unit', 'Brand', 'Packing', 'Quantity ctns', 'NW/Ctn (kg)', 'Quantity(n.w) kg', `Price ${form.currency}/kg`, `Amount ${form.currency}`, ''].map((h, i) => (
+                      {['#', 'Product Type', 'Size', 'Unit', 'Brand', 'Packing', 'Quantity ctns', 'NW/Ctn (kg)', 'Quantity(n.w) kg', `Price ${currencyLabel}/kg`, `Amount ${currencyLabel}`, ''].map((h, i) => (
                         <th key={i} style={{ padding: '7px 6px', textAlign: i >= 6 && i <= 10 ? 'right' : 'left', fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', borderBottom: '2px solid var(--border)', whiteSpace: 'nowrap' }}>
                           {h}
                         </th>
@@ -705,7 +721,7 @@ export function ContractForm() {
                       <td style={{ padding: '8px 6px', borderTop: '2px solid var(--border)' }}></td>
                       <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace', borderTop: '2px solid var(--border)' }}>{groupTotals.weight > 0 ? fmt2(groupTotals.weight) : '—'}</td>
                       <td style={{ padding: '8px 6px', borderTop: '2px solid var(--border)' }}></td>
-                      <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace', borderTop: '2px solid var(--border)', color: 'var(--primary)' }}>{groupTotals.amount > 0 ? `${form.currency} ${fmt2(groupTotals.amount)}` : '—'}</td>
+                      <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace', borderTop: '2px solid var(--border)', color: 'var(--primary)' }}>{groupTotals.amount > 0 ? `${currencyLabel} ${fmt2(groupTotals.amount)}` : '—'}</td>
                       <td style={{ borderTop: '2px solid var(--border)' }}></td>
                     </tr>
                   </tbody>
@@ -727,7 +743,7 @@ export function ContractForm() {
             <span>Grand Total —</span>
             <span>{totals.qty > 0 ? totals.qty.toLocaleString() : '—'} ctns</span>
             <span>{totals.weight > 0 ? fmt2(totals.weight) : '—'} kg</span>
-            <span style={{ color: 'var(--primary)' }}>{totals.amount > 0 ? `${form.currency} ${fmt2(totals.amount)}` : '—'}</span>
+            <span style={{ color: 'var(--primary)' }}>{totals.amount > 0 ? `${currencyLabel} ${fmt2(totals.amount)}` : '—'}</span>
           </div>
         )}
       </div>

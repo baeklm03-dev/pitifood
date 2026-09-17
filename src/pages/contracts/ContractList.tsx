@@ -432,17 +432,17 @@ export function ContractList() {
                             <Upload size={12} /> Upload Sign File
                           </Button>
                         )}
-                        {c.isLocked && (
-                          <div data-row-menu style={{ position: 'relative' }}>
-                            <Button variant="ghost" size="sm" onClick={() => setMenuOpenId(menuOpenId === c.id ? null : c.id)}>
-                              <MoreVertical size={12} />
-                            </Button>
-                            {menuOpenId === c.id && (
-                              <div style={{
-                                position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 20,
-                                background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
-                                boxShadow: 'var(--shadow-md)', minWidth: '180px', overflow: 'hidden', padding: '6px',
-                              }}>
+                        <div data-row-menu style={{ position: 'relative' }}>
+                          <Button variant="ghost" size="sm" onClick={() => setMenuOpenId(menuOpenId === c.id ? null : c.id)}>
+                            <MoreVertical size={12} />
+                          </Button>
+                          {menuOpenId === c.id && (
+                            <div style={{
+                              position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 20,
+                              background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
+                              boxShadow: 'var(--shadow-md)', minWidth: '180px', overflow: 'hidden', padding: '6px',
+                            }}>
+                              {c.isLocked && (
                                 <button
                                   onClick={() => { setMenuOpenId(null); setRewriteTarget(c); }}
                                   style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '9px 12px', fontSize: '13px', fontWeight: 500, color: 'var(--text)', background: 'none', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', textAlign: 'left' }}
@@ -451,26 +451,26 @@ export function ContractList() {
                                 >
                                   <RefreshCw size={14} /> Rewrite
                                 </button>
-                                <button
-                                  onClick={() => { setMenuOpenId(null); openPi(c); }}
-                                  style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '9px 12px', fontSize: '13px', fontWeight: 500, color: 'var(--text)', background: 'none', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', textAlign: 'left' }}
-                                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg)')}
-                                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                                >
-                                  <FileSignature size={14} /> Proforma Invoice
-                                </button>
-                                <button
-                                  onClick={() => { setMenuOpenId(null); openCs(c); }}
-                                  style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '9px 12px', fontSize: '13px', fontWeight: 500, color: 'var(--text)', background: 'none', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', textAlign: 'left' }}
-                                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg)')}
-                                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                                >
-                                  <Copy size={14} /> Custom Sale Contract
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                              )}
+                              <button
+                                onClick={() => { setMenuOpenId(null); openPi(c); }}
+                                style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '9px 12px', fontSize: '13px', fontWeight: 500, color: 'var(--text)', background: 'none', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', textAlign: 'left' }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg)')}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                              >
+                                <FileSignature size={14} /> Proforma Invoice
+                              </button>
+                              <button
+                                onClick={() => { setMenuOpenId(null); openCs(c); }}
+                                style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '9px 12px', fontSize: '13px', fontWeight: 500, color: 'var(--text)', background: 'none', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', textAlign: 'left' }}
+                                onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg)')}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                              >
+                                <Copy size={14} /> Custom Sale Contract
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
                   </tr>

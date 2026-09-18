@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Search, Edit2, Printer, Upload, FileUp, RefreshCw, FileText, Lock, MoreVertical, FileSignature, Copy } from 'lucide-react';
+import { Plus, Search, Edit2, Printer, Upload, FileUp, RefreshCw, FileText, Lock, MoreVertical, FileSignature, Copy, Trash2 } from 'lucide-react';
 import { contractService } from '../../services/contractService';
 import { buyerService } from '../../services/buyerService';
 import { generateRevisionContractNo, generateProformaInvoiceNo, generateCustomSaleContractNo } from '../../utils/contractNumber';
@@ -61,6 +62,21 @@ export function ContractList() {
   const [creatingCs, setCreatingCs] = useState(false);
 
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [menuPos, setMenuPos] = useState<{ top: number; right: number } | null>(null);
+
+  const toggleMenu = (id: string, e: React.MouseEvent<HTMLButtonElement>) => {
+    if (menuOpenId === id) {
+      setMenuOpenId(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
+    setMenuOpenId(id);
+  };
+
+  const [deleteTarget, setDeleteTarget] = useState<SaleContract | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const isSuperAdmin = user?.role === 'super_admin';
 
   const [importOpen, setImportOpen] = useState(false);
   const [importForm, setImportForm] = useState({ contractNo: '', buyerId: '', offerDate: TODAY });
@@ -216,6 +232,20 @@ export function ContractList() {
       setCsError(extractError(err, 'Failed to create Custom Sale Contract'));
     } finally {
       setCreatingCs(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await contractService.delete(deleteTarget.id);
+      setDeleteTarget(null);
+      load();
+    } catch (err) {
+      console.error('Delete failed:', err);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -431,12 +461,12 @@ export function ContractList() {
                           </Button>
                         )}
                         <div data-row-menu style={{ position: 'relative' }}>
-                          <Button variant="ghost" size="sm" onClick={() => setMenuOpenId(menuOpenId === c.id ? null : c.id)}>
+                          <Button variant="ghost" size="sm" onClick={(e) => toggleMenu(c.id, e)}>
                             <MoreVertical size={12} />
                           </Button>
-                          {menuOpenId === c.id && (
-                            <div style={{
-                              position: 'absolute', top: 'calc(100% + 4px)', right: 0, zIndex: 20,
+                          {menuOpenId === c.id && menuPos && createPortal(
+                            <div data-row-menu style={{
+                              position: 'fixed', top: menuPos.top, right: menuPos.right, zIndex: 1000,
                               background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius)',
                               boxShadow: 'var(--shadow-md)', minWidth: '180px', overflow: 'hidden', padding: '6px',
                             }}>
@@ -466,7 +496,18 @@ export function ContractList() {
                               >
                                 <Copy size={14} /> Custom Sale Contract
                               </button>
-                            </div>
+                              {isSuperAdmin && (
+                                <button
+                                  onClick={() => { setMenuOpenId(null); setDeleteTarget(c); }}
+                                  style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '9px 12px', fontSize: '13px', fontWeight: 500, color: 'var(--danger)', background: 'none', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer', textAlign: 'left' }}
+                                  onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg)')}
+                                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                                >
+                                  <Trash2 size={14} /> Delete
+                                </button>
+                              )}
+                            </div>,
+                            document.body
                           )}
                         </div>
                       </div>
@@ -573,6 +614,16 @@ export function ContractList() {
           {importError && <p style={{ fontSize: '12px', color: 'var(--danger)' }}>{importError}</p>}
         </div>
       </Modal>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDelete}
+        title="Delete Contract"
+        message={`ลบ ${deleteTarget?.contractNo} ถาวร?\n\nThis will permanently delete this contract and cannot be undone.`}
+        confirmLabel={deleting ? 'Deleting...' : 'Delete'}
+        confirmVariant="danger"
+      />
 
       <ConfirmModal
         open={!!rewriteTarget}

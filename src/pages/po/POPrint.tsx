@@ -111,13 +111,26 @@ function CombinedSpecSection({ data }: { data: { block: CombinedSpecBlock; remar
           <>
             <div>น้ำหนักและการเคลือบน้ำ:{block.weightHead ? ` ${block.weightHead}` : ''}</div>
             {block.weightLabels.length > 0 && (
-              <div>
-                {block.weightLabels.map((l, i) => (
-                  <span key={i} style={{ textDecoration: 'underline', marginRight: '8pt' }}>{l}</span>
-                ))}
-              </div>
+              // Borderless table so each value sits under its underlined column label.
+              <table style={{ borderCollapse: 'collapse', fontSize: '8pt', lineHeight: 1.5 }}>
+                <thead>
+                  <tr>
+                    {block.weightLabels.map((l, i) => (
+                      <th key={i} style={{ textAlign: 'left', fontWeight: 400, padding: '0 14pt 0 0' }}>
+                        <span style={{ textDecoration: 'underline' }}>{l}</span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {block.weightRows.map((cells, r) => (
+                    <tr key={r}>
+                      {cells.map((c, i) => <td key={i} style={{ padding: '0 14pt 0 0' }}>{c}</td>)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
-            {block.weightRows.map((r, i) => <div key={i}>{r}</div>)}
           </>
         ))}
         {block.extraLines.map((t, i) => <div key={i} style={line}>{t}</div>)}

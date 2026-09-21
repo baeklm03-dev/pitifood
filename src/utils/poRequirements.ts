@@ -224,7 +224,7 @@ export interface CombinedSpecBlock {
   weightNo: string | null;
   weightHead: string;         // text after "น้ำหนักและการเคลือบน้ำ:" (glaze method / percent), may be ''
   weightLabels: string[];     // underlined column labels, only the columns some brand filled in
-  weightRows: string[];       // one "450g / 550g / 550+" row per distinct brand
+  weightRows: string[][];     // one row of cells (450g, 550g, 550+) per distinct brand, aligned under weightLabels
   extraLines: string[];       // numbered custom extras from all brands
 }
 
@@ -257,9 +257,10 @@ export function buildCombinedSpecBlock(specs: ProductSpecDetail[], prefix: strin
     ...specs.filter((v) => v.glazePercent).map((v) => `เคลือบน้ำ ${v.glazePercent}%`),
     ...specs.filter((v) => v.glazeMethod).map((v) => `วิธีการเคลือบ ${v.glazeMethod}`),
   ]).join(' / ');
-  const weightRows = unique(specs
+  const weightRows = specs
     .filter((v) => columns.some((c) => c.value(v)))
-    .map((v) => columns.map((c) => c.value(v) || '-').join(' / ')));
+    .map((v) => columns.map((c) => c.value(v) || '-'))
+    .filter((cells, i, all) => all.findIndex((o) => o.join('|') === cells.join('|')) === i); // drop identical rows
 
   const standardNo = standardLines.length > 0 ? no() : null;
   const colorNo = colorParts.length > 0 ? no() : null;

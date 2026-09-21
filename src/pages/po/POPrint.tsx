@@ -442,7 +442,7 @@ export function POPrint() {
                     </tr>
                     {blockTotals && (
                       <tr style={{ fontWeight: 700, background: '#F2F2F2' }}>
-                        <td style={cell()} colSpan={4}>Total{spanGroups[blockStart]!.brand ? ` "${spanGroups[blockStart]!.brand}"` : ''}</td>
+                        <td style={cell({ textAlign: 'right' })} colSpan={4}>Total</td>
                         <td style={cell({ textAlign: 'right' })}>{fmtNum(blockTotals.ctn, 0)}</td>
                         <td style={cell({ textAlign: 'right' })}>{fmtNum(blockTotals.kg)}</td>
                         <td style={cell({ textAlign: 'right' })}>{blockTotals.stock > 0 ? fmtNum(blockTotals.stock) : '0.00'}</td>
@@ -453,7 +453,7 @@ export function POPrint() {
                 );
               })}
               <tr style={{ fontWeight: 700 }}>
-                <td style={cell()} colSpan={4}>{multiBlock ? 'Grand Total' : 'Total'}</td>
+                <td style={cell({ textAlign: 'right' })} colSpan={4}>{multiBlock ? 'Grand Total' : 'Total'}</td>
                 <td style={cell({ textAlign: 'right' })}>{fmtNum(totals.ctn, 0)}</td>
                 <td style={cell({ textAlign: 'right' })}>{fmtNum(totals.kg)}</td>
                 <td style={cell({ textAlign: 'right' })}>{totals.stock > 0 ? fmtNum(totals.stock) : '0.00'}</td>

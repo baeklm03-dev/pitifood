@@ -8,7 +8,7 @@ import { buyerService } from '../../services/buyerService';
 import { contractService } from '../../services/contractService';
 import type { ProductionOrder, POLine, Buyer } from '../../types';
 import { formatDateTH } from '../../utils/thaiDate';
-import { formatProductSpecLines, buildPackingDetailBlock, formatRequirementLines, type PackingDetailBlock } from '../../utils/poRequirements';
+import { formatProductSpecLines, buildCombinedPackingBlock, formatRequirementLines, type CombinedPackingBlock } from '../../utils/poRequirements';
 import { getProductFullName } from '../../utils/productTypes';
 import { Button } from '../../components/UI/Button';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
@@ -111,71 +111,71 @@ function RequirementSection({ sectionNo, title, entries }: { sectionNo: number; 
   );
 }
 
-interface PackingSectionEntry { label: string; block: PackingDetailBlock; remark?: string; }
-
-function collectPackingEntries(groups: LineGroup[], po: ProductionOrder, overrides?: Record<string, string>, frozenStyle?: string): PackingSectionEntry[] {
-  return groups
-    .map((g) => {
-      const pr = po.productRequirements.find((p) => p.productType === g.productType && (p.brand ?? '') === (g.brand ?? ''));
-      const block = pr
-        ? buildPackingDetailBlock(pr.packingDetail, '2', { productForm: pr.productSpec.productForm, brand: g.brand ?? '', netWeightGrams: pr.productSpec.netWeightGrams })
-        : { innerHeadline: null, topLidLines: [], bottomLidLines: [], outerHeadline: null, outerLines: [], tailLines: [] };
-      return { label: `${productName(g.productType, overrides, frozenStyle)}${g.brand ? ` "${g.brand}"` : ''}`, block, remark: pr?.packingDetailRemark };
-    })
-    .filter((e) => e.block.innerHeadline || e.block.outerHeadline || e.block.tailLines.length > 0 || e.remark);
+// ข้อ 2 is ONE section for the whole PO. Per-brand inner/outer box lines sit under a single
+// 2.1 / 2.2 heading (indented), followed by the shared ฝาบน/ฝาล่าง, outer-box bullets, the
+// one-line strap description (colours bold) and custom extras, then a single remark.
+function collectPackingBlock(groups: LineGroup[], po: ProductionOrder): { block: CombinedPackingBlock; remark?: string } | null {
+  const reqs = groups
+    .map((g) => po.productRequirements.find((p) => p.productType === g.productType && (p.brand ?? '') === (g.brand ?? '')))
+    .filter((pr): pr is NonNullable<typeof pr> => !!pr);
+  if (reqs.length === 0) return null;
+  const block = buildCombinedPackingBlock(
+    reqs.map((pr) => ({
+      detail: pr.packingDetail,
+      ctx: { productForm: pr.productSpec.productForm, brand: pr.brand ?? '', netWeightGrams: pr.productSpec.netWeightGrams },
+    })),
+    '2',
+  );
+  const remark = reqs[0].packingDetailRemark;
+  const hasContent = block.innerHeadline || block.outerHeadline || block.strap.strapped || block.tailLines.length > 0 || remark;
+  return hasContent ? { block, remark } : null;
 }
 
-// Renders one product's packing-detail block: 2.1/2.2 headlines with the ฝาบน/ฝาล่าง (inner) or
-// flat (outer) sub-bullets nested underneath, underlined group labels, then the numbered tail
-// (strap + custom extra items), and finally that product's remark right below it all.
-function PackingBlockView({ block, remark }: { block: PackingDetailBlock; remark?: string }) {
+function PackingRequirementSection({ data }: { data: { block: CombinedPackingBlock; remark?: string } | null }) {
+  if (!data) return null;
+  const { block, remark } = data;
+  const line: React.CSSProperties = { fontSize: '8pt', lineHeight: 1.5 };
   const bulletList = (lines: string[]) => lines.map((t, i) => (
     <div key={i} style={{ fontSize: '7.5pt', lineHeight: 1.5, paddingLeft: '10pt' }}>- {t}</div>
   ));
-  return (
-    <>
-      {block.innerHeadline && (
-        <div style={{ fontSize: '8pt', lineHeight: 1.5 }}>{block.innerHeadline}</div>
-      )}
-      {block.topLidLines.length > 0 && (
-        <div style={{ paddingLeft: '6pt' }}>
-          <div style={{ fontSize: '7.5pt', fontWeight: 600, textDecoration: 'underline' }}>ฝาบน</div>
-          {bulletList(block.topLidLines)}
-        </div>
-      )}
-      {block.bottomLidLines.length > 0 && (
-        <div style={{ paddingLeft: '6pt' }}>
-          <div style={{ fontSize: '7.5pt', fontWeight: 600, textDecoration: 'underline' }}>ฝาล่าง</div>
-          {bulletList(block.bottomLidLines)}
-        </div>
-      )}
-      {block.outerHeadline && (
-        <div style={{ fontSize: '8pt', lineHeight: 1.5, marginTop: '2pt' }}>{block.outerHeadline}</div>
-      )}
-      {bulletList(block.outerLines)}
-      {block.tailLines.map((line, i) => (
-        <div key={i} style={{ fontSize: '8pt', lineHeight: 1.5 }}>{line}</div>
-      ))}
-      <RemarkLine text={remark} />
-    </>
-  );
-}
-
-function PackingRequirementSection({ entries }: { entries: PackingSectionEntry[] }) {
-  if (entries.length === 0) return null;
+  const boxLines = (lines: string[]) => lines.map((t, i) => (
+    <div key={i} style={{ ...line, paddingLeft: '10pt' }}>{t}</div>
+  ));
   return (
     <div style={{ marginBottom: '6pt' }}>
       <div style={{ fontWeight: 600, fontSize: '8.5pt' }}>2. รายละเอียดและข้อกำหนดบรรจุภัณฑ์</div>
-      {entries.length === 1 ? (
-        <div style={{ paddingLeft: '4pt' }}><PackingBlockView block={entries[0].block} remark={entries[0].remark} /></div>
-      ) : (
-        entries.map((e, i) => (
-          <div key={i} style={{ marginTop: '2pt', paddingLeft: '4pt' }}>
-            <div style={{ fontSize: '8pt', fontWeight: 600 }}>• {e.label}</div>
-            <div style={{ paddingLeft: '10pt' }}><PackingBlockView block={e.block} remark={e.remark} /></div>
+      <div style={{ paddingLeft: '4pt' }}>
+        {block.innerHeadline && <div style={line}>{block.innerHeadline}</div>}
+        {boxLines(block.innerLines)}
+        {block.topLidLines.length > 0 && (
+          <div style={{ paddingLeft: '6pt' }}>
+            <div style={{ fontSize: '7.5pt', fontWeight: 600, textDecoration: 'underline' }}>ฝาบน</div>
+            {bulletList(block.topLidLines)}
           </div>
-        ))
-      )}
+        )}
+        {block.bottomLidLines.length > 0 && (
+          <div style={{ paddingLeft: '6pt' }}>
+            <div style={{ fontSize: '7.5pt', fontWeight: 600, textDecoration: 'underline' }}>ฝาล่าง</div>
+            {bulletList(block.bottomLidLines)}
+          </div>
+        )}
+        {block.outerHeadline && <div style={{ ...line, marginTop: '2pt' }}>{block.outerHeadline}</div>}
+        {boxLines(block.outerLines)}
+        {bulletList(block.outerItemLines)}
+        <div style={line}>
+          {block.strap.no} เชือกสายรัด
+          {block.strap.strapped ? (
+            <>
+              {block.strap.parts.map((p, i) => (
+                <React.Fragment key={i}> {p.label ? `${p.label} : ` : ''}<strong>สี{p.color}</strong></React.Fragment>
+              ))}
+              {block.strap.suffix}
+            </>
+          ) : ': ไม่รัด'}
+        </div>
+        {block.tailLines.map((t, i) => <div key={i} style={line}>{t}</div>)}
+        <RemarkLine text={remark} />
+      </div>
     </div>
   );
 }
@@ -218,7 +218,7 @@ export function POPrint() {
   const groups = groupLines(po.lines);
   const spanGroups = computeLineSpanGroups(po.lines, overrides, frozenStyle);
   const specEntries = collectSpecEntries(groups, po, overrides, frozenStyle);
-  const packingEntries = collectPackingEntries(groups, po, overrides, frozenStyle);
+  const packingData = collectPackingBlock(groups, po);
   const loadingLines = formatRequirementLines(po.loadingRequirement, '3');
   const documentLines = formatRequirementLines(po.documentRequirement, '4');
 
@@ -392,7 +392,7 @@ export function POPrint() {
               Each section's remark renders directly under that section instead of a consolidated block. */}
           <div style={{ fontWeight: 700, fontSize: '9pt', marginBottom: '3pt' }}>ข้อกำหนดอื่นๆ</div>
           <RequirementSection sectionNo={1} title="รายละเอียดสินค้า (Product specification)" entries={specEntries} />
-          <PackingRequirementSection entries={packingEntries} />
+          <PackingRequirementSection data={packingData} />
 
           {loadingLines.length > 0 && (
             <div style={{ marginBottom: '6pt' }}>

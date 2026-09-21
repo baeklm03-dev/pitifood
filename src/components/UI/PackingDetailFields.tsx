@@ -3,7 +3,7 @@ import type { PackingDetail, ProductSpecDetail } from '../../types';
 import { Input } from './Input';
 import { BoxCodeInput } from './BoxCodeInput';
 import { RequirementChecklist } from './RequirementChecklist';
-import { composeInnerBoxLine, composeOuterBoxLine, splitBoxCodes, type BoxLineContext } from '../../utils/poRequirements';
+import { composeInnerBoxLine, composeOuterBoxLine, type BoxLineContext } from '../../utils/poRequirements';
 
 interface Props {
   value: PackingDetail;
@@ -21,15 +21,6 @@ const mmInput: React.CSSProperties = { width: '70px' };
 export function PackingDetailFields({ value, onChange, fieldId, buyerCode, brand, productForm, netWeightGrams }: Props) {
   const set = <K extends keyof PackingDetail>(key: K, v: PackingDetail[K]) =>
     onChange({ ...value, [key]: v });
-
-  // One strap colour per outer-box code (codes come from the outer-box field above).
-  const strapCodes = splitBoxCodes(value.outerBoxCode);
-  const setStrapColor = (idx: number, color: string) => {
-    const next = [...value.strappingColors];
-    while (next.length <= idx) next.push('');
-    next[idx] = color;
-    set('strappingColors', next);
-  };
 
   const groupLabel: React.CSSProperties = { fontSize: '12.5px', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: '8px' };
   const subLabel: React.CSSProperties = { fontSize: '12.5px', fontWeight: 600, color: 'var(--text)', display: 'block', marginBottom: '6px', textDecoration: 'underline' };
@@ -105,24 +96,12 @@ export function PackingDetailFields({ value, onChange, fieldId, buyerCode, brand
           </label>
           {value.strapped && (
             <>
+              <Input value={value.strappingColor} onChange={(e) => set('strappingColor', e.target.value)} placeholder="สีสายรัด" style={{ maxWidth: '160px' }} />
               <Input type="number" value={value.strappingCount} onChange={(e) => set('strappingCount', e.target.value)} placeholder="จำนวนเส้น" style={{ maxWidth: '110px' }} />
               <Input value={value.strappingStyle} onChange={(e) => set('strappingStyle', e.target.value)} placeholder="ลักษณะการรัด" style={{ maxWidth: '160px' }} />
             </>
           )}
         </div>
-        {value.strapped && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
-            {(strapCodes.length > 0 ? strapCodes : ['']).map((code, i) => (
-              <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                {code && <span style={{ fontSize: '12.5px', fontFamily: 'monospace', color: 'var(--text-muted)' }}>{code}</span>}
-                <Input value={value.strappingColors[i] ?? ''} onChange={(e) => setStrapColor(i, e.target.value)} placeholder="สีสายรัด *" style={{ maxWidth: '160px' }} />
-              </div>
-            ))}
-            <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
-              ระบุสีสายรัดของแต่ละรหัสกล่องนอก (รหัสดึงจากด้านบน) · ถ้าไม่กรอกจำนวนเส้น จะไม่แสดงในใบ PO
-            </span>
-          </div>
-        )}
       </div>
 
       <div style={block}>

@@ -86,7 +86,7 @@ export interface PackingDetail {
   outerBoxCode: string;         // รหัสกล่อง (M-...) — see BoxCodeInput
   outerBoxItems: RequirementItem[];  // กล่องนอก — addable free lines (flat, no ฝาบน/ฝาล่าง split)
   strapped: boolean;            // เชือกสายรัด: รัด / ไม่รัด
-  strappingColors: string[];    // สีสายรัด แยกตามรหัสกล่องนอก (index ตรงกับรหัสใน outerBoxCode ที่คั่นด้วย " / ")
+  strappingColor: string;       // สีสายรัดของสินค้า/แบรนด์นี้ (แยกตามกุ้งต้ม/กุ้งดิบ) — ใช้เมื่อ strapped === true
   strappingCount: string;       // จำนวนเส้น — ใช้เมื่อ strapped === true
   strappingStyle: string;       // ลักษณะการรัด
   extraItems?: RequirementItem[]; // custom numbered sub-items appended after the fixed ones (2.5+)

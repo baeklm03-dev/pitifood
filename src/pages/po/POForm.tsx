@@ -15,7 +15,7 @@ import type { SaleContract, Buyer, Brand, ProductionOrder, POLine, POStatus, Pro
 import { Button } from '../../components/UI/Button';
 import { Input } from '../../components/UI/Input';
 import { ProductSpecFields } from '../../components/UI/ProductSpecFields';
-import { PackingDetailFields } from '../../components/UI/PackingDetailFields';
+import { PackingSectionFields } from '../../components/UI/PackingSectionFields';
 import { RequirementChecklist } from '../../components/UI/RequirementChecklist';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 
@@ -529,36 +529,43 @@ export function POForm() {
         <p style={sectionTitle}>3 — ข้อกำหนดอื่นๆ</p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '20px' }}>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>ข้อ 1-2 — แยกตามสินค้า/แบรนด์ในรายการสินค้าด้านบน (ดึงจาก brand โดยอัตโนมัติ)</span>
-          {lineGroups.map((g, i) => {
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>ข้อ 1 — แยกตามสินค้า/แบรนด์ · ข้อ 2 — รวมเป็นอันเดียวทุกแบรนด์ (ดึงจาก brand โดยอัตโนมัติ)</span>
+          {lineGroups.map((g) => {
             const pr = getRequirement(g.productType, g.brand);
-            const buyerCode = selectedContract?.buyerCode ?? brands.find((b) => b.brandName === g.brand)?.buyerCode ?? '';
             return (
               <div key={`${g.productType}|${g.brand}`} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '14px', background: 'var(--bg)' }}>
                 <div style={{ fontWeight: 600, fontSize: '13px', marginBottom: '12px' }}>
                   {g.productType || '—'}{g.brand ? ` "${g.brand}"` : ''}
                 </div>
-                <label style={{ fontSize: '12.5px', fontWeight: 500, display: 'block', marginBottom: '6px' }}>{i + 1}.1 รายละเอียดสินค้า (Product specification)</label>
+                <label style={{ fontSize: '12.5px', fontWeight: 500, display: 'block', marginBottom: '6px' }}>1. รายละเอียดสินค้า (Product specification)</label>
                 <ProductSpecFields value={pr.productSpec} onChange={(v) => updateRequirement(g.productType, g.brand, { productSpec: v })} />
-                <div style={{ marginTop: '8px', marginBottom: '14px' }}>
-                  <Input label="Remark" value={pr.productSpecRemark} onChange={(e) => updateRequirement(g.productType, g.brand, { productSpecRemark: e.target.value })} />
-                </div>
-                <label style={{ fontSize: '12.5px', fontWeight: 500, display: 'block', marginBottom: '6px' }}>{i + 1}.2 รายละเอียดและข้อกำหนดบรรจุภัณฑ์</label>
-                <PackingDetailFields
-                  fieldId={`po-packing-detail-${i}`}
-                  buyerCode={buyerCode}
-                  brand={g.brand}
-                  productForm={pr.productSpec.productForm}
-                  netWeightGrams={pr.productSpec.netWeightGrams}
-                  value={pr.packingDetail}
-                  onChange={(v) => updateRequirement(g.productType, g.brand, { packingDetail: v })}
-                />
                 <div style={{ marginTop: '8px' }}>
-                  <Input label="Remark" value={pr.packingDetailRemark} onChange={(e) => updateRequirement(g.productType, g.brand, { packingDetailRemark: e.target.value })} />
+                  <Input label="Remark" value={pr.productSpecRemark} onChange={(e) => updateRequirement(g.productType, g.brand, { productSpecRemark: e.target.value })} />
                 </div>
               </div>
             );
           })}
+          {lineGroups.length > 0 && (
+            <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '14px', background: 'var(--bg)' }}>
+              <div style={{ fontWeight: 600, fontSize: '13px', marginBottom: '12px' }}>2. รายละเอียดและข้อกำหนดบรรจุภัณฑ์</div>
+              <PackingSectionFields
+                groups={lineGroups.map((g) => {
+                  const pr = getRequirement(g.productType, g.brand);
+                  return {
+                    key: `${g.productType}|${g.brand}`,
+                    brand: g.brand,
+                    buyerCode: selectedContract?.buyerCode ?? brands.find((b) => b.brandName === g.brand)?.buyerCode ?? '',
+                    productForm: pr.productSpec.productForm,
+                    netWeightGrams: pr.productSpec.netWeightGrams,
+                    value: pr.packingDetail,
+                  };
+                })}
+                onChangeGroup={(idx, next) => updateRequirement(lineGroups[idx].productType, lineGroups[idx].brand, { packingDetail: next })}
+                remark={getRequirement(lineGroups[0].productType, lineGroups[0].brand).packingDetailRemark}
+                onRemarkChange={(v) => updateRequirement(lineGroups[0].productType, lineGroups[0].brand, { packingDetailRemark: v })}
+              />
+            </div>
+          )}
           {lineGroups.length === 0 && (
             <p style={{ color: 'var(--text-muted)', fontSize: '13px' }}>เลือก Sale Contract เพื่อดึงข้อกำหนดตามสินค้า</p>
           )}

@@ -20,12 +20,16 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-    // Identify the caller from their own access token.
+    // Identify the caller from their own access token. The token is passed to
+    // getUser() explicitly so validation doesn't depend on client session state.
+    const token = authHeader.replace(/^Bearer\s+/i, '');
     const callerClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false, autoRefreshToken: false },
     });
-    const { data: { user: caller }, error: authError } = await callerClient.auth.getUser();
-    if (authError || !caller) throw new Error('Not authenticated');
+    const { data: { user: caller }, error: authError } = await callerClient.auth.getUser(token);
+    if (authError || !caller) {
+      throw new Error(`Not authenticated${authError ? `: ${authError.message}` : ''}`);
+    }
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 

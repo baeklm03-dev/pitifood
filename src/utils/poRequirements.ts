@@ -211,6 +211,70 @@ export function formatProductSpecLines(v: ProductSpecDetail, prefix: string): st
   return numberLines(lines, v.extraItems, prefix);
 }
 
+// ── PO product spec (ข้อ 1) for several brands ─────────────────────────────────────────────
+// With more than one brand the print drops the per-brand name headings (the order is implied by
+// the product table above) and merges each sub-item across brands instead:
+//   1.1 มาตรฐาน — one line per brand        1.2 สี : กุ้งต้ม 23.5+ / กุ้งดิบ 24+
+//   1.3 น้ำหนักและการเคลือบน้ำ — glaze method, then underlined column labels and a value row per brand
+export interface CombinedSpecBlock {
+  standardNo: string | null;
+  standardLines: string[];
+  colorNo: string | null;
+  colorLine: string | null;
+  weightNo: string | null;
+  weightHead: string;         // text after "น้ำหนักและการเคลือบน้ำ:" (glaze method / percent), may be ''
+  weightLabels: string[];     // underlined column labels, only the columns some brand filled in
+  weightRows: string[];       // one "450g / 550g / 550+" row per distinct brand
+  extraLines: string[];       // numbered custom extras from all brands
+}
+
+const unique = <T,>(xs: T[]): T[] => Array.from(new Set(xs));
+
+export function buildCombinedSpecBlock(specs: ProductSpecDetail[], prefix: string): CombinedSpecBlock {
+  let n = 0;
+  const no = () => `${prefix}.${++n}`;
+
+  const standardLines = unique(specs.flatMap((v) => {
+    const formLabel = productFormLabel(v.productForm);
+    if (!formLabel) return [];
+    let line = `มาตรฐานการผลิต${formLabel}`;
+    if (v.standardCustomer) line += ` ลูกค้า${v.standardCustomer}`;
+    if (v.standardCode) line += ` ตาม Production STD : QA.STD.${v.standardCode}`;
+    return [line];
+  }));
+
+  const colorParts = unique(specs
+    .filter((v) => productFormLabel(v.productForm) || v.colorSizePlus)
+    .map((v) => [productFormLabel(v.productForm), v.colorSizePlus && `${v.colorSizePlus}+`].filter(Boolean).join(' ')));
+
+  const hasWeight = specs.some((v) => v.netWeightGrams || v.boxWeightGrams || v.afterGlazeWeightGrams || v.glazePercent || v.glazeMethod);
+  const columns = [
+    { label: 'N.W.', value: (v: ProductSpecDetail) => (v.netWeightGrams ? `${v.netWeightGrams}g` : '') },
+    { label: 'ระบุบนกล่อง', value: (v: ProductSpecDetail) => (v.boxWeightGrams ? `${v.boxWeightGrams}g` : '') },
+    { label: 'หลังเคลือบน้ำ', value: (v: ProductSpecDetail) => v.afterGlazeWeightGrams },
+  ].filter((c) => specs.some((v) => c.value(v)));
+  const weightHead = unique([
+    ...specs.filter((v) => v.glazePercent).map((v) => `เคลือบน้ำ ${v.glazePercent}%`),
+    ...specs.filter((v) => v.glazeMethod).map((v) => `วิธีการเคลือบ ${v.glazeMethod}`),
+  ]).join(' / ');
+  const weightRows = unique(specs
+    .filter((v) => columns.some((c) => c.value(v)))
+    .map((v) => columns.map((c) => c.value(v) || '-').join(' / ')));
+
+  const standardNo = standardLines.length > 0 ? no() : null;
+  const colorNo = colorParts.length > 0 ? no() : null;
+  const weightNo = hasWeight ? no() : null;
+  const extraLines = unique(specs.flatMap((v) => (v.extraItems ?? []).filter((i) => i.checked && i.text.trim()).map((i) => i.text.trim())))
+    .map((t) => `${no()} ${t}`);
+
+  return {
+    standardNo, standardLines,
+    colorNo, colorLine: colorParts.length > 0 ? `สี : ${colorParts.join(' / ')}` : null,
+    weightNo, weightHead, weightLabels: columns.map((c) => c.label), weightRows,
+    extraLines,
+  };
+}
+
 // Shared by the PackingDetailFields live preview and buildPackingDetailBlock below, so the
 // form preview and the printed line can never drift out of sync. The inner-box headline is
 // fully auto-composed from productForm (ข้อ 1) + brand, so it's never typed a second time;

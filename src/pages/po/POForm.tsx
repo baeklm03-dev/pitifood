@@ -514,7 +514,7 @@ export function POForm() {
                   <td colSpan={6} style={{ padding: '8px 6px', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'right', textTransform: 'uppercase' }}>Total</td>
                   <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace' }}>{totals.ctn ? fmt(totals.ctn, 0) : '—'}</td>
                   <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace' }}>{totals.kg ? fmt(totals.kg) : '—'}</td>
-                  <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace' }}>{totals.stock ? fmt(totals.stock) : '—'}</td>
+                  <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace' }}>{fmt(totals.stock)}</td>
                   <td style={{ padding: '8px 6px', textAlign: 'right', fontFamily: 'monospace' }}>{totals.add ? fmt(totals.add) : '—'}</td>
                   <td />
                 </tr>

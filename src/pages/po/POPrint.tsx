@@ -359,7 +359,7 @@ export function POPrint() {
                 <td style={cell()} colSpan={4}>Total</td>
                 <td style={cell({ textAlign: 'right' })}>{fmtNum(totals.ctn, 0)}</td>
                 <td style={cell({ textAlign: 'right' })}>{fmtNum(totals.kg)}</td>
-                <td style={cell({ textAlign: 'right' })}>{fmtNum(totals.stock)}</td>
+                <td style={cell({ textAlign: 'right' })}>{totals.stock > 0 ? fmtNum(totals.stock) : '0.00'}</td>
                 <td style={cell({ textAlign: 'right' })}>{fmtNum(totals.add)}</td>
               </tr>
             </tbody>

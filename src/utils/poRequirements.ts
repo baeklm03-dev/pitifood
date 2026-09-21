@@ -19,7 +19,7 @@ export function emptyPackingDetail(): PackingDetail {
     topLidItems: [], bottomLidItems: [],
     outerBoxDesc: '', outerBoxWidthMm: '', outerBoxLengthMm: '', outerBoxHeightMm: '', outerBoxCode: '',
     outerBoxItems: [],
-    strapped: false, strappingColor: '', strappingCount: '', strappingStyle: '',
+    strapped: false, strappingColors: [], strappingCount: '', strappingStyle: '',
     extraItems: [],
   };
 }
@@ -157,7 +157,10 @@ export function normalizePackingDetail(raw: any): PackingDetail {
       ? normalizeRequirementItems(raw.outerBoxItems)
       : legacyOuterBoxItems(raw.outerBoxChecklist, raw.outerBoxStampCode, raw.outerBoxDateMatchInner),
     strapped: Boolean(raw.strapped),
-    strappingColor: typeof raw.strappingColor === 'string' ? raw.strappingColor : '',
+    // Older records stored a single colour in `strappingColor`.
+    strappingColors: Array.isArray(raw.strappingColors)
+      ? raw.strappingColors.map((c: unknown) => (typeof c === 'string' ? c : ''))
+      : typeof raw.strappingColor === 'string' && raw.strappingColor ? [raw.strappingColor] : [],
     strappingCount: typeof raw.strappingCount === 'string' ? raw.strappingCount : '',
     strappingStyle: typeof raw.strappingStyle === 'string' ? raw.strappingStyle : '',
     extraItems: normalizeRequirementItems(raw.extraItems ?? []),
@@ -243,6 +246,23 @@ export interface PackingDetailBlock {
   tailLines: string[];
 }
 
+// A PO can carry several outer-box codes joined by " / " (see BoxCodeInput).
+export function splitBoxCodes(code: string): string[] {
+  return code.split('/').map((c) => c.trim()).filter(Boolean);
+}
+
+// "เชือกสายรัด: รัด M-A01-R-03-R4 สีขาว M-A01-R-03-R5 สีส้ม จำนวน 2 เส้น ลักษณะ กากบาท" — one
+// colour per outer-box code; the count is left out entirely when not filled in.
+function composeStrapLine(v: PackingDetail): string {
+  const codes = splitBoxCodes(v.outerBoxCode);
+  const colorAt = (i: number) => v.strappingColors[i]?.trim() || '-';
+  const colors = codes.length > 0
+    ? codes.map((code, i) => `${code} สี${colorAt(i)}`).join(' ')
+    : `สี ${colorAt(0)}`;
+  const count = v.strappingCount.trim() ? ` จำนวน ${v.strappingCount.trim()} เส้น` : '';
+  return `เชือกสายรัด: รัด ${colors}${count} ลักษณะ ${v.strappingStyle || '-'}`;
+}
+
 export function buildPackingDetailBlock(v: PackingDetail, prefix: string, ctx: BoxLineContext): PackingDetailBlock {
   const hasInner = ctx.productForm || v.innerBoxWidthMm || v.innerBoxLengthMm || v.innerBoxHeightMm || v.innerBoxCode;
   const hasOuter = v.outerBoxDesc || v.outerBoxWidthMm || v.outerBoxLengthMm || v.outerBoxHeightMm || v.outerBoxCode;
@@ -251,9 +271,7 @@ export function buildPackingDetailBlock(v: PackingDetail, prefix: string, ctx: B
   const outerHeadline = hasOuter ? `${prefix}.${++n} ${composeOuterBoxLine(v, ctx)}` : null;
 
   const tailSources = [
-    v.strapped
-      ? `เชือกสายรัด: รัด สี ${v.strappingColor || '-'} จำนวน ${v.strappingCount || '-'} เส้น ลักษณะ ${v.strappingStyle || '-'}`
-      : 'เชือกสายรัด: ไม่รัด',
+    v.strapped ? composeStrapLine(v) : 'เชือกสายรัด: ไม่รัด',
     ...checkedTexts(v.extraItems ?? []),
   ];
   const tailLines = tailSources.map((line) => `${prefix}.${++n} ${line}`);

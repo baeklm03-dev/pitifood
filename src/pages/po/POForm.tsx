@@ -55,6 +55,11 @@ interface LineRow {
 
 const num = (s: string) => parseFloat(s) || 0;
 
+// ผลิตเพิ่ม = จำนวน (ก.ก.) − สินค้าในสต็อก; with no stock entered it is the full quantity.
+// Never negative (stock exceeding the order means nothing extra to produce).
+const produceAddOf = (r: { qtyKg: string; inStock: string }) =>
+  Math.max(0, Math.round((num(r.qtyKg) - num(r.inStock)) * 100) / 100);
+
 function lineToRow(l: POLine): LineRow {
   return {
     id: l.id,
@@ -73,7 +78,7 @@ function rowToLine(r: LineRow): POLine {
     productType: r.productType, brand: r.brand || undefined, size: r.size, packing: r.packing,
     mark: r.mark, sizeRm: r.sizeRm,
     qtyCtn: num(r.qtyCtn), qtyKg: num(r.qtyKg),
-    inStock: num(r.inStock), produceAdd: num(r.produceAdd),
+    inStock: num(r.inStock), produceAdd: produceAddOf(r),
   };
 }
 
@@ -306,7 +311,7 @@ export function POForm() {
     });
 
   const totals = form.rows.reduce(
-    (acc, r) => ({ ctn: acc.ctn + num(r.qtyCtn), kg: acc.kg + num(r.qtyKg), stock: acc.stock + num(r.inStock), add: acc.add + num(r.produceAdd) }),
+    (acc, r) => ({ ctn: acc.ctn + num(r.qtyCtn), kg: acc.kg + num(r.qtyKg), stock: acc.stock + num(r.inStock), add: acc.add + produceAddOf(r) }),
     { ctn: 0, kg: 0, stock: 0, add: 0 }
   );
 
@@ -497,7 +502,7 @@ export function POForm() {
                     <td style={{ padding: '4px 6px', minWidth: '80px' }}><input type="number" min="0" value={row.qtyCtn} onChange={(e) => setRow(row.id, { qtyCtn: e.target.value })} placeholder="0" style={numCell} /></td>
                     <td style={{ padding: '4px 6px', minWidth: '90px' }}><input type="number" min="0" step="0.01" value={row.qtyKg} onChange={(e) => setRow(row.id, { qtyKg: e.target.value })} placeholder="0.00" style={numCell} /></td>
                     <td style={{ padding: '4px 6px', minWidth: '90px' }}><input type="number" min="0" step="0.01" value={row.inStock} onChange={(e) => setRow(row.id, { inStock: e.target.value })} placeholder="0.00" style={numCell} /></td>
-                    <td style={{ padding: '4px 6px', minWidth: '90px' }}><input type="number" min="0" step="0.01" value={row.produceAdd} onChange={(e) => setRow(row.id, { produceAdd: e.target.value })} placeholder="0.00" style={numCell} /></td>
+                    <td style={{ padding: '4px 6px', minWidth: '90px' }}><input readOnly tabIndex={-1} value={produceAddOf(row) ? fmt(produceAddOf(row)) : ''} placeholder="0.00" title="คำนวณอัตโนมัติ: จำนวน (ก.ก.) − สินค้าในสต็อก" style={{ ...numCell, background: 'var(--bg)' }} /></td>
                     <td style={{ padding: '4px 6px', textAlign: 'center', width: '32px' }}>
                       <button type="button" onClick={() => removeRow(row.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', display: 'flex', padding: '4px' }}><Trash2 size={14} /></button>
                     </td>

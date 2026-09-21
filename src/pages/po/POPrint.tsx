@@ -42,9 +42,10 @@ function groupLines(lines: POLine[]): LineGroup[] {
 }
 
 // Product name as printed on the PO: full name plus the contract's Frozen Style, e.g.
-// "Frozen Cooked Vannamei Shrimp Head On Shell On (Semi-IQF)".
+// "Frozen Cooked Vannamei Shrimp Head On Shell On (Semi-IQF)". The quoted grade tag some product
+// types carry on Sale Contracts (e.g. `" B Grade "`, `" White Cheek "`) is left off the PO.
 function productName(productType: string, overrides?: Record<string, string>, frozenStyle?: string): string {
-  const name = getProductFullName(productType, overrides);
+  const name = getProductFullName(productType, overrides).replace(/\s*"[^"]*"\s*$/, '');
   return frozenStyle ? `${name} (${frozenStyle})` : name;
 }
 

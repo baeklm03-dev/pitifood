@@ -9,6 +9,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useResponsive } from '../../hooks/useMediaQuery';
 import { generatePoNo } from '../../utils/poNumber';
 import { formatDeliveryNoteTH } from '../../utils/deliveryNote';
+import { sizeRmFromMark } from '../../utils/productTypes';
 import { emptyProductSpec, emptyPackingDetail, emptyLoadingRequirement, emptyDocumentRequirement, cloneRequirementItems } from '../../utils/poRequirements';
 import type { SaleContract, Buyer, Brand, ProductionOrder, POLine, POStatus, ProductSpecDetail, PackingDetail, LoadingRequirement, DocumentRequirement, ProductRequirement } from '../../types';
 import { Button } from '../../components/UI/Button';
@@ -238,7 +239,7 @@ export function POForm() {
     const rows: LineRow[] = c.productLines.map((p) => ({
       id: uid(),
       productType: p.productType, brand: p.brand, size: p.size, packing: p.packing,
-      mark: '', sizeRm: '',
+      mark: p.size, sizeRm: sizeRmFromMark(p.size),
       qtyCtn: p.quantity ? String(p.quantity) : '',
       qtyKg: p.totalWeight ? String(+p.totalWeight.toFixed(2)) : '',
       inStock: '', produceAdd: '',
@@ -467,7 +468,7 @@ export function POForm() {
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '1080px', fontSize: '12px' }}>
               <thead>
                 <tr style={{ background: 'var(--bg)' }}>
-                  {['#', 'รายการสินค้า', 'แบรนด์', 'Packing size', 'mark', 'size r/m', 'จำนวน (กล่อง)', 'จำนวน (ก.ก.)', 'สินค้าในสต็อก', 'ผลิตเพิ่ม', ''].map((h, i) => (
+                  {['#', 'รายการสินค้า', 'แบรนด์', 'Packing size', 'size mark', 'size r/m', 'จำนวน (กล่อง)', 'จำนวน (ก.ก.)', 'สินค้าในสต็อก', 'ผลิตเพิ่ม', ''].map((h, i) => (
                     <th key={i} style={{ padding: '7px 6px', textAlign: i >= 6 ? 'right' : 'left', fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', borderBottom: '2px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -491,7 +492,7 @@ export function POForm() {
                           </td>
                         )}
                     <td style={{ padding: '4px 6px', minWidth: '110px' }}><input value={row.packing} onChange={(e) => setRow(row.id, { packing: e.target.value })} style={cellInput} /></td>
-                    <td style={{ padding: '4px 6px', minWidth: '70px' }}><input value={row.mark} onChange={(e) => setRow(row.id, { mark: e.target.value })} style={cellInput} /></td>
+                    <td style={{ padding: '4px 6px', minWidth: '70px' }}><input value={row.mark} onChange={(e) => setRow(row.id, { mark: e.target.value, sizeRm: sizeRmFromMark(e.target.value) })} style={cellInput} /></td>
                     <td style={{ padding: '4px 6px', minWidth: '70px' }}><input value={row.sizeRm} onChange={(e) => setRow(row.id, { sizeRm: e.target.value })} style={cellInput} /></td>
                     <td style={{ padding: '4px 6px', minWidth: '80px' }}><input type="number" min="0" value={row.qtyCtn} onChange={(e) => setRow(row.id, { qtyCtn: e.target.value })} placeholder="0" style={numCell} /></td>
                     <td style={{ padding: '4px 6px', minWidth: '90px' }}><input type="number" min="0" step="0.01" value={row.qtyKg} onChange={(e) => setRow(row.id, { qtyKg: e.target.value })} placeholder="0.00" style={numCell} /></td>

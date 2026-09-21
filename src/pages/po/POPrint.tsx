@@ -329,7 +329,7 @@ export function POPrint() {
               <tr>
                 <th style={cell({ textAlign: 'center', fontWeight: 700 })}>รายการสินค้า</th>
                 <th style={cell({ textAlign: 'center', fontWeight: 700 })}>Packing size</th>
-                <th style={cell({ textAlign: 'center', fontWeight: 700 })}>mark</th>
+                <th style={cell({ textAlign: 'center', fontWeight: 700 })}>size mark</th>
                 <th style={cell({ textAlign: 'center', fontWeight: 700 })}>size r/m</th>
                 <th style={cell({ textAlign: 'center', fontWeight: 700 })}>จำนวน (กล่อง)</th>
                 <th style={cell({ textAlign: 'center', fontWeight: 700 })}>จำนวน (ก.ก.)</th>

@@ -11,6 +11,18 @@ export const SIZES = [
   '61/70', '70/80', '71/80', '81/100', '91/120',
 ];
 
+// PO "size r/m" (pieces-per-lb range) derived from a "size mark" like "16/20":
+// one step inside each end of the range, i.e. (low+1)-(high-1) → "17-19".
+// Non-range marks (U8, blank, custom text) yield '' so the user can type it in.
+export function sizeRmFromMark(mark: string): string {
+  const m = mark.trim().match(/^(\d+)\s*\/\s*(\d+)$/);
+  if (!m) return '';
+  const lo = parseInt(m[1], 10) + 1;
+  const hi = parseInt(m[2], 10) - 1;
+  if (lo > hi) return '';
+  return lo === hi ? String(lo) : `${lo}-${hi}`;
+}
+
 // Default commodity description printed on Sale Contracts / POs for each product type.
 // A buyer can override any of these (Buyer.productTypeNameOverrides) — e.g. AU01 SEABOSS
 // calls its product "Prawn" instead of "Shrimp".

@@ -5,6 +5,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { poService } from '../../services/poService';
 import { buyerService } from '../../services/buyerService';
+import { contractService } from '../../services/contractService';
 import type { ProductionOrder, POLine, Buyer } from '../../types';
 import { formatDateTH } from '../../utils/thaiDate';
 import { formatProductSpecLines, buildPackingDetailBlock, formatRequirementLines, type PackingDetailBlock } from '../../utils/poRequirements';
@@ -40,18 +41,24 @@ function groupLines(lines: POLine[]): LineGroup[] {
   return out;
 }
 
-interface LineSpanGroup { span: number; label: string; }
+// Product name as printed on the PO: full name plus the contract's Frozen Style, e.g.
+// "Frozen Cooked Vannamei Shrimp Head On Shell On (Semi-IQF)".
+function productName(productType: string, overrides?: Record<string, string>, frozenStyle?: string): string {
+  const name = getProductFullName(productType, overrides);
+  return frozenStyle ? `${name} (${frozenStyle})` : name;
+}
+
+interface LineSpanGroup { span: number; label: string; brand?: string; }
 
 // For consecutive lines sharing the same product+brand, only the first line gets a
 // visible entry (with the merged rowSpan); the label replaces the old row-number column.
-function computeLineSpanGroups(lines: POLine[], overrides?: Record<string, string>): (LineSpanGroup | null)[] {
+function computeLineSpanGroups(lines: POLine[], overrides?: Record<string, string>, frozenStyle?: string): (LineSpanGroup | null)[] {
   const result: (LineSpanGroup | null)[] = new Array(lines.length).fill(null);
   let i = 0;
   while (i < lines.length) {
     let span = 1;
     while (i + span < lines.length && lines[i + span].productType === lines[i].productType && (lines[i + span].brand ?? '') === (lines[i].brand ?? '')) span++;
-    const label = `${getProductFullName(lines[i].productType, overrides)}${lines[i].brand ? ` "${lines[i].brand}"` : ''}`;
-    result[i] = { span, label };
+    result[i] = { span, label: productName(lines[i].productType, overrides, frozenStyle), brand: lines[i].brand || undefined };
     i += span;
   }
   return result;
@@ -59,12 +66,12 @@ function computeLineSpanGroups(lines: POLine[], overrides?: Record<string, strin
 
 interface ReqSectionEntry { label: string; lines: string[]; remark?: string; }
 
-function collectSpecEntries(groups: LineGroup[], po: ProductionOrder, overrides?: Record<string, string>): ReqSectionEntry[] {
+function collectSpecEntries(groups: LineGroup[], po: ProductionOrder, overrides?: Record<string, string>, frozenStyle?: string): ReqSectionEntry[] {
   return groups
     .map((g) => {
       const pr = po.productRequirements.find((p) => p.productType === g.productType && (p.brand ?? '') === (g.brand ?? ''));
       return {
-        label: `${getProductFullName(g.productType, overrides)}${g.brand ? ` "${g.brand}"` : ''}`,
+        label: `${productName(g.productType, overrides, frozenStyle)}${g.brand ? ` "${g.brand}"` : ''}`,
         lines: pr ? formatProductSpecLines(pr.productSpec, '1') : [],
         remark: pr?.productSpecRemark,
       };
@@ -106,14 +113,14 @@ function RequirementSection({ sectionNo, title, entries }: { sectionNo: number; 
 
 interface PackingSectionEntry { label: string; block: PackingDetailBlock; remark?: string; }
 
-function collectPackingEntries(groups: LineGroup[], po: ProductionOrder, overrides?: Record<string, string>): PackingSectionEntry[] {
+function collectPackingEntries(groups: LineGroup[], po: ProductionOrder, overrides?: Record<string, string>, frozenStyle?: string): PackingSectionEntry[] {
   return groups
     .map((g) => {
       const pr = po.productRequirements.find((p) => p.productType === g.productType && (p.brand ?? '') === (g.brand ?? ''));
       const block = pr
         ? buildPackingDetailBlock(pr.packingDetail, '2', { productForm: pr.productSpec.productForm, brand: g.brand ?? '', netWeightGrams: pr.productSpec.netWeightGrams })
         : { innerHeadline: null, topLidLines: [], bottomLidLines: [], outerHeadline: null, outerLines: [], tailLines: [] };
-      return { label: `${getProductFullName(g.productType, overrides)}${g.brand ? ` "${g.brand}"` : ''}`, block, remark: pr?.packingDetailRemark };
+      return { label: `${productName(g.productType, overrides, frozenStyle)}${g.brand ? ` "${g.brand}"` : ''}`, block, remark: pr?.packingDetailRemark };
     })
     .filter((e) => e.block.innerHeadline || e.block.outerHeadline || e.block.tailLines.length > 0 || e.remark);
 }
@@ -180,6 +187,7 @@ export function POPrint() {
 
   const [po, setPo] = useState<ProductionOrder | null>(null);
   const [buyer, setBuyer] = useState<Buyer | null>(null);
+  const [frozenStyle, setFrozenStyle] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const pageRef = useRef<HTMLDivElement>(null);
@@ -189,7 +197,12 @@ export function POPrint() {
     poService.getById(id).then((p) => {
       if (!p) { navigate('/po'); return; }
       setPo(p);
-      return p.buyerId ? buyerService.getById(p.buyerId).then(setBuyer) : undefined;
+      // Frozen Style (e.g. Semi-IQF) lives on the referenced Sale Contract.
+      const contractLoad = p.contractId
+        ? contractService.getById(p.contractId).then((c) => setFrozenStyle(c?.packingStyle || undefined)).catch(() => undefined)
+        : undefined;
+      const buyerLoad = p.buyerId ? buyerService.getById(p.buyerId).then(setBuyer) : undefined;
+      return Promise.all([contractLoad, buyerLoad]);
     }).finally(() => setLoading(false));
   }, [id, navigate]);
 
@@ -203,9 +216,9 @@ export function POPrint() {
 
   const overrides = buyer?.productTypeNameOverrides;
   const groups = groupLines(po.lines);
-  const spanGroups = computeLineSpanGroups(po.lines, overrides);
-  const specEntries = collectSpecEntries(groups, po, overrides);
-  const packingEntries = collectPackingEntries(groups, po, overrides);
+  const spanGroups = computeLineSpanGroups(po.lines, overrides, frozenStyle);
+  const specEntries = collectSpecEntries(groups, po, overrides, frozenStyle);
+  const packingEntries = collectPackingEntries(groups, po, overrides, frozenStyle);
   const loadingLines = formatRequirementLines(po.loadingRequirement, '3');
   const documentLines = formatRequirementLines(po.documentRequirement, '4');
 
@@ -343,7 +356,10 @@ export function POPrint() {
                 return (
                   <tr key={l.id}>
                     {span && (
-                      <td rowSpan={span.span} style={cell({ fontWeight: 600, verticalAlign: 'middle' })}>{span.label}</td>
+                      <td rowSpan={span.span} style={cell({ fontWeight: 600, verticalAlign: 'middle' })}>
+                        <div>{span.label}</div>
+                        {span.brand && <div style={{ textAlign: 'center', marginTop: '2pt' }}>"{span.brand}"</div>}
+                      </td>
                     )}
                     <td style={cell()}>{l.packing || '—'}</td>
                     <td style={cell({ textAlign: 'center' })}>{l.mark || '—'}</td>

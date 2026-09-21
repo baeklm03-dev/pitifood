@@ -210,7 +210,7 @@ export interface POLine {
   qtyCtn: number;       // cartons (from SC, editable)
   qtyKg: number;        // net weight kg (from SC, editable)
   inStock: number;      // manual
-  produceAdd: number;   // manual
+  produceAdd: number;   // derived: max(0, qtyKg − inStock)
 }
 
 // ข้อ 1 (product spec) + ข้อ 2 (packing detail), one block per distinct product+brand

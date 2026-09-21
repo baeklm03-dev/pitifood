@@ -18,6 +18,8 @@ function mapProductRequirement(raw: any): ProductRequirement {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapLine(l: any): POLine {
+  const qtyKg = Number(l.qty_kg) || 0;
+  const inStock = Number(l.in_stock) || 0;
   return {
     id: l.id,
     productType: l.product_type ?? '',
@@ -27,9 +29,10 @@ function mapLine(l: any): POLine {
     mark: l.mark ?? '',
     sizeRm: l.size_rm ?? '',
     qtyCtn: Number(l.qty_ctn) || 0,
-    qtyKg: Number(l.qty_kg) || 0,
-    inStock: Number(l.in_stock) || 0,
-    produceAdd: Number(l.produce_add) || 0,
+    qtyKg,
+    inStock,
+    // Derived, not stored value, so POs saved before this rule existed also show qty − stock.
+    produceAdd: Math.max(0, Math.round((qtyKg - inStock) * 100) / 100),
   };
 }
 

@@ -8,7 +8,7 @@ import { buyerService } from '../../services/buyerService';
 import { contractService } from '../../services/contractService';
 import type { ProductionOrder, POLine, Buyer } from '../../types';
 import { formatDateTH } from '../../utils/thaiDate';
-import { formatProductSpecLines, buildCombinedPackingBlock, buildCombinedSpecBlock, formatRequirementLines, type CombinedPackingBlock, type CombinedSpecBlock } from '../../utils/poRequirements';
+import { buildCombinedPackingBlock, buildCombinedSpecBlock, formatRequirementLines, type CombinedPackingBlock, type CombinedSpecBlock } from '../../utils/poRequirements';
 import { getProductFullName } from '../../utils/productTypes';
 import { Button } from '../../components/UI/Button';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
@@ -65,28 +65,13 @@ function computeLineSpanGroups(lines: POLine[], overrides?: Record<string, strin
   return result;
 }
 
-interface ReqSectionEntry { label: string; lines: string[]; remark?: string; }
-
-function collectSpecEntries(groups: LineGroup[], po: ProductionOrder, overrides?: Record<string, string>, frozenStyle?: string): ReqSectionEntry[] {
-  return groups
-    .map((g) => {
-      const pr = po.productRequirements.find((p) => p.productType === g.productType && (p.brand ?? '') === (g.brand ?? ''));
-      return {
-        label: `${productName(g.productType, overrides, frozenStyle)}${g.brand ? ` "${g.brand}"` : ''}`,
-        lines: pr ? formatProductSpecLines(pr.productSpec, '1') : [],
-        remark: pr?.productSpecRemark,
-      };
-    })
-    .filter((e) => e.lines.length > 0 || e.remark);
-}
-
-// With more than one brand, ข้อ 1 prints once without the per-brand name headings (order follows
-// the product table); see buildCombinedSpecBlock.
+// ข้อ 1 prints once for the whole PO without per-brand name headings (order follows the product
+// table); one brand or several, see buildCombinedSpecBlock.
 function collectCombinedSpec(groups: LineGroup[], po: ProductionOrder): { block: CombinedSpecBlock; remarks: string[] } | null {
   const reqs = groups
     .map((g) => po.productRequirements.find((p) => p.productType === g.productType && (p.brand ?? '') === (g.brand ?? '')))
     .filter((pr): pr is NonNullable<typeof pr> => !!pr);
-  if (reqs.length < 2) return null;
+  if (reqs.length === 0) return null;
   const block = buildCombinedSpecBlock(reqs.map((pr) => pr.productSpec), '1');
   const remarks = Array.from(new Set(reqs.map((pr) => pr.productSpecRemark?.trim()).filter((r): r is string => !!r)));
   const hasContent = block.standardNo || block.colorNo || block.weightNo || block.extraLines.length > 0 || remarks.length > 0;
@@ -146,31 +131,6 @@ function CombinedSpecSection({ data }: { data: { block: CombinedSpecBlock; remar
 function RemarkLine({ text }: { text?: string }) {
   if (!text) return null;
   return <div style={{ fontSize: '7.5pt', color: '#C0392B', fontStyle: 'italic', marginTop: '1pt' }}>หมายเหตุ: {text}</div>;
-}
-
-// One heading; flat text if only one product has content, otherwise a bullet per product
-// (so identical or differing per-product details are always clearly attributed).
-function RequirementSection({ sectionNo, title, entries }: { sectionNo: number; title: string; entries: ReqSectionEntry[] }) {
-  if (entries.length === 0) return null;
-  return (
-    <div style={{ marginBottom: '6pt' }}>
-      <div style={{ fontWeight: 600, fontSize: '8.5pt' }}>{sectionNo}. {title}</div>
-      {entries.length === 1 ? (
-        <>
-          <div style={{ fontSize: '8pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '4pt' }}>{entries[0].lines.join('\n')}</div>
-          <div style={{ paddingLeft: '4pt' }}><RemarkLine text={entries[0].remark} /></div>
-        </>
-      ) : (
-        entries.map((e, i) => (
-          <div key={i} style={{ marginTop: '2pt', paddingLeft: '4pt' }}>
-            <div style={{ fontSize: '8pt', fontWeight: 600 }}>• {e.label}</div>
-            <div style={{ fontSize: '7.5pt', lineHeight: 1.5, whiteSpace: 'pre-line', paddingLeft: '10pt' }}>{e.lines.join('\n')}</div>
-            <div style={{ paddingLeft: '10pt' }}><RemarkLine text={e.remark} /></div>
-          </div>
-        ))
-      )}
-    </div>
-  );
 }
 
 // ข้อ 2 is ONE section for the whole PO. Per-brand inner/outer box lines sit under a single
@@ -281,7 +241,6 @@ export function POPrint() {
   const groups = groupLines(po.lines);
   const spanGroups = computeLineSpanGroups(po.lines, overrides, frozenStyle);
   const multiBlock = spanGroups.filter(Boolean).length > 1;
-  const specEntries = collectSpecEntries(groups, po, overrides, frozenStyle);
   const combinedSpec = collectCombinedSpec(groups, po);
   const packingData = collectPackingBlock(groups, po);
   const loadingLines = formatRequirementLines(po.loadingRequirement, '3');
@@ -473,9 +432,7 @@ export function POPrint() {
           {/* Requirements — flat text for one product, bulleted per product when there's more than one.
               Each section's remark renders directly under that section instead of a consolidated block. */}
           <div style={{ fontWeight: 700, fontSize: '9pt', marginBottom: '3pt' }}>ข้อกำหนดอื่นๆ</div>
-          {groups.length > 1
-            ? (combinedSpec && <CombinedSpecSection data={combinedSpec} />)
-            : <RequirementSection sectionNo={1} title="รายละเอียดสินค้า (Product specification)" entries={specEntries} />}
+          {combinedSpec && <CombinedSpecSection data={combinedSpec} />}
           <PackingRequirementSection data={packingData} />
 
           {loadingLines.length > 0 && (

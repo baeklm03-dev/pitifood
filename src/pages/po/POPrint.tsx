@@ -270,14 +270,16 @@ export function POPrint() {
   if (loading) return <LoadingSpinner message="Loading production order..." />;
   if (!po) return null;
 
-  const totals = po.lines.reduce(
+  const sumLines = (ls: POLine[]) => ls.reduce(
     (acc, l) => ({ ctn: acc.ctn + l.qtyCtn, kg: acc.kg + l.qtyKg, stock: acc.stock + l.inStock, add: acc.add + l.produceAdd }),
     { ctn: 0, kg: 0, stock: 0, add: 0 }
   );
+  const totals = sumLines(po.lines);
 
   const overrides = buyer?.productTypeNameOverrides;
   const groups = groupLines(po.lines);
   const spanGroups = computeLineSpanGroups(po.lines, overrides, frozenStyle);
+  const multiBlock = spanGroups.filter(Boolean).length > 1;
   const specEntries = collectSpecEntries(groups, po, overrides, frozenStyle);
   const combinedSpec = collectCombinedSpec(groups, po);
   const packingData = collectPackingBlock(groups, po);
@@ -415,26 +417,43 @@ export function POPrint() {
             <tbody>
               {po.lines.map((l, idx) => {
                 const span = spanGroups[idx];
+                // Each brand block (consecutive lines of one product+brand) ends with its own Total row —
+                // skipped when the PO has only one block, where it would just repeat the grand total.
+                const blockStart = spanGroups.slice(0, idx + 1).map((g, i) => (g ? i : -1)).filter((i) => i >= 0).pop() as number;
+                const blockSpan = spanGroups[blockStart]!.span;
+                const isBlockEnd = idx === blockStart + blockSpan - 1;
+                const blockTotals = isBlockEnd && multiBlock ? sumLines(po.lines.slice(blockStart, idx + 1)) : null;
                 return (
-                  <tr key={l.id}>
-                    {span && (
-                      <td rowSpan={span.span} style={cell({ fontWeight: 600, verticalAlign: 'middle' })}>
-                        <div>{span.label}</div>
-                        {span.brand && <div style={{ textAlign: 'center', marginTop: '2pt' }}>"{span.brand}"</div>}
-                      </td>
+                  <React.Fragment key={l.id}>
+                    <tr>
+                      {span && (
+                        <td rowSpan={span.span} style={cell({ fontWeight: 600, verticalAlign: 'middle' })}>
+                          <div>{span.label}</div>
+                          {span.brand && <div style={{ textAlign: 'center', marginTop: '2pt' }}>"{span.brand}"</div>}
+                        </td>
+                      )}
+                      <td style={cell()}>{l.packing || '—'}</td>
+                      <td style={cell({ textAlign: 'center' })}>{l.mark || '—'}</td>
+                      <td style={cell({ textAlign: 'center' })}>{l.sizeRm || '—'}</td>
+                      <td style={cell({ textAlign: 'right' })}>{fmtNum(l.qtyCtn, 0)}</td>
+                      <td style={cell({ textAlign: 'right' })}>{fmtNum(l.qtyKg)}</td>
+                      <td style={cell({ textAlign: 'right' })}>{fmtNum(l.inStock)}</td>
+                      <td style={cell({ textAlign: 'right' })}>{fmtNum(l.produceAdd)}</td>
+                    </tr>
+                    {blockTotals && (
+                      <tr style={{ fontWeight: 700, background: '#F2F2F2' }}>
+                        <td style={cell()} colSpan={4}>Total{spanGroups[blockStart]!.brand ? ` "${spanGroups[blockStart]!.brand}"` : ''}</td>
+                        <td style={cell({ textAlign: 'right' })}>{fmtNum(blockTotals.ctn, 0)}</td>
+                        <td style={cell({ textAlign: 'right' })}>{fmtNum(blockTotals.kg)}</td>
+                        <td style={cell({ textAlign: 'right' })}>{blockTotals.stock > 0 ? fmtNum(blockTotals.stock) : '0.00'}</td>
+                        <td style={cell({ textAlign: 'right' })}>{fmtNum(blockTotals.add)}</td>
+                      </tr>
                     )}
-                    <td style={cell()}>{l.packing || '—'}</td>
-                    <td style={cell({ textAlign: 'center' })}>{l.mark || '—'}</td>
-                    <td style={cell({ textAlign: 'center' })}>{l.sizeRm || '—'}</td>
-                    <td style={cell({ textAlign: 'right' })}>{fmtNum(l.qtyCtn, 0)}</td>
-                    <td style={cell({ textAlign: 'right' })}>{fmtNum(l.qtyKg)}</td>
-                    <td style={cell({ textAlign: 'right' })}>{fmtNum(l.inStock)}</td>
-                    <td style={cell({ textAlign: 'right' })}>{fmtNum(l.produceAdd)}</td>
-                  </tr>
+                  </React.Fragment>
                 );
               })}
               <tr style={{ fontWeight: 700 }}>
-                <td style={cell()} colSpan={4}>Total</td>
+                <td style={cell()} colSpan={4}>{multiBlock ? 'Grand Total' : 'Total'}</td>
                 <td style={cell({ textAlign: 'right' })}>{fmtNum(totals.ctn, 0)}</td>
                 <td style={cell({ textAlign: 'right' })}>{fmtNum(totals.kg)}</td>
                 <td style={cell({ textAlign: 'right' })}>{totals.stock > 0 ? fmtNum(totals.stock) : '0.00'}</td>

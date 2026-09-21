@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { ProductSpecDetail } from '../../types';
 import { Input, Select } from './Input';
 import { RequirementChecklist } from './RequirementChecklist';
@@ -10,7 +10,8 @@ interface Props {
 }
 
 const OTHER = '__other__';
-const COLOR_SIZE_OPTIONS = Array.from({ length: 9 }, (_, i) => String(22 + i)); // 22..30
+// 22, 22.5, 23, ... 30 — colour sizes come in half steps too (e.g. 23.5+)
+const COLOR_SIZE_OPTIONS = Array.from({ length: 17 }, (_, i) => String(22 + i * 0.5));
 const PRODUCT_FORM_OPTIONS = [
   { value: 'cooked', label: 'กุ้งต้ม' },
   { value: 'raw', label: 'กุ้งดิบ' },
@@ -25,7 +26,10 @@ export function ProductSpecFields({ value, onChange }: Props) {
   const inlineRow: React.CSSProperties = { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' };
   const previewStyle: React.CSSProperties = { fontSize: '11.5px', color: 'var(--text-muted)', fontStyle: 'italic', marginTop: '4px' };
 
-  const colorIsOther = value.colorSizePlus !== '' && !COLOR_SIZE_OPTIONS.includes(value.colorSizePlus);
+  // "อื่นๆ" must keep the custom box open even while it is still empty, so it is tracked
+  // explicitly rather than inferred from the value.
+  const [customColor, setCustomColor] = useState(false);
+  const colorIsOther = customColor || (value.colorSizePlus !== '' && !COLOR_SIZE_OPTIONS.includes(value.colorSizePlus));
   const formLabel = productFormLabel(value.productForm);
 
   const standardParts = [
@@ -60,7 +64,11 @@ export function ProductSpecFields({ value, onChange }: Props) {
         <div style={inlineRow}>
           <select
             value={colorIsOther ? OTHER : value.colorSizePlus}
-            onChange={(e) => set('colorSizePlus', e.target.value === OTHER ? '' : e.target.value)}
+            onChange={(e) => {
+              const isOther = e.target.value === OTHER;
+              setCustomColor(isOther);
+              set('colorSizePlus', isOther ? '' : e.target.value);
+            }}
             style={{ padding: '9px 13px', border: '1.5px solid var(--border)', borderRadius: 'var(--radius)', fontSize: '13px', background: 'var(--surface)' }}
           >
             <option value="">— เลือกไซส์ —</option>
@@ -68,7 +76,7 @@ export function ProductSpecFields({ value, onChange }: Props) {
             <option value={OTHER}>อื่นๆ</option>
           </select>
           {colorIsOther && (
-            <Input value={value.colorSizePlus} onChange={(e) => set('colorSizePlus', e.target.value)} placeholder="ระบุไซส์" style={{ width: '90px' }} />
+            <Input value={value.colorSizePlus} onChange={(e) => set('colorSizePlus', e.target.value)} placeholder="ระบุไซส์" style={{ width: '90px' }} autoFocus />
           )}
           <span style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>+ (ดึงคำว่า{formLabel ? `"${formLabel}"` : '"กุ้งต้ม/กุ้งดิบ"'}จากมาตรฐานด้านบน)</span>
         </div>

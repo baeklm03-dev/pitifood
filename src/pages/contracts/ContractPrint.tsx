@@ -105,6 +105,21 @@ export function ContractPrint() {
   };
 
   const groups = groupByProductType(contract.productLines);
+
+  // A brand label after the commodity name tells the reader which of a contract's several
+  // brands a table belongs to. When the contract has just one brand and that brand is the
+  // buyer's own name — AU01 SEABOSS sells brand SEABOSS — the label only repeats the name
+  // already at the top of the contract, so it's dropped. It stays whenever there is more
+  // than one brand to tell apart, since hiding one of them would leave two tables under
+  // headings that read identically.
+  const contractBrands = new Set(contract.productLines.map((p) => p.brand).filter(Boolean));
+  const buyerOwnNames = [contract.buyerName, buyer?.companyName]
+    .filter((n): n is string => Boolean(n))
+    .map((n) => n.trim().toUpperCase());
+  const brandEchoesBuyer =
+    contractBrands.size === 1 &&
+    buyerOwnNames.includes([...contractBrands][0].trim().toUpperCase());
+
   const grandQty = contract.productLines.reduce((s, p) => s + p.quantity, 0);
   const grandWeight = contract.productLines.reduce((s, p) => s + p.totalWeight, 0);
   const grandAmount = contract.productLines.reduce((s, p) => s + p.totalAmount, 0);
@@ -245,7 +260,7 @@ export function ContractPrint() {
             const groupQty = group.lines.reduce((s, p) => s + p.quantity, 0);
             const groupWeight = group.lines.reduce((s, p) => s + p.totalWeight, 0);
             const groupAmount = group.lines.reduce((s, p) => s + p.totalAmount, 0);
-            const brandLabel = group.brand ? ` "${group.brand}"` : '';
+            const brandLabel = group.brand && !brandEchoesBuyer ? ` "${group.brand}"` : '';
             // Size marks are counted per pound on an Lb line, so the Size header follows the
             // group's unit. Quantity(n.w) and the unit price are always kg, so theirs don't.
             const sizeUnit = groupSizeUnitLabel(group.lines.map((p) => p.sizeUnit));

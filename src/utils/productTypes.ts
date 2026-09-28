@@ -11,13 +11,16 @@ export const SIZES = [
   '61/70', '70/80', '71/80', '81/100', '91/120',
 ];
 
-// A product line's net weight is always entered as kg per carton; a line whose sizeUnit is
-// 'Lb' only means its unit price is quoted per pound, so the weight is converted to pounds
-// before being multiplied by the price. Used by ContractForm and contractService alike.
-export const LB_PER_KG = 2.20462;
-
-export function weightForPricing(totalWeightKg: number, sizeUnit: 'kg' | 'Lb'): number {
-  return sizeUnit === 'Lb' ? totalWeightKg * LB_PER_KG : totalWeightKg;
+// A product line's sizeUnit says what its size mark counts against — "16/20" is pieces per
+// pound on an 'Lb' line, per kilogram on a 'kg' one. It is a grading basis only: weight is
+// always kg per carton and the unit price is always quoted per kg, so nothing about the
+// money or the weight follows it. Only the Size column's label does.
+//
+// A group that mixes both bases says so rather than picking one and hiding the other.
+export function groupSizeUnitLabel(sizeUnits: Iterable<'kg' | 'Lb'>): string {
+  const set = new Set(sizeUnits);
+  if (set.size !== 1) return 'kg/lb';
+  return set.has('Lb') ? 'lb' : 'kg';
 }
 
 // PO "size r/m" (pieces-per-lb range) derived from a "size mark" like "16/20":

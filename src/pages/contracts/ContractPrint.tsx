@@ -7,7 +7,7 @@ import { contractService } from '../../services/contractService';
 import { buyerService } from '../../services/buyerService';
 import type { Buyer, ProductLine, SaleContract } from '../../types';
 import { formatShipment } from '../../utils/shipment';
-import { buyerProductNames, getProductFullName } from '../../utils/productTypes';
+import { buyerProductNames, getProductFullName, groupSizeUnitLabel } from '../../utils/productTypes';
 import { baseContractNo } from '../../utils/contractNumber';
 import { Button } from '../../components/UI/Button';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
@@ -246,11 +246,9 @@ export function ContractPrint() {
             const groupWeight = group.lines.reduce((s, p) => s + p.totalWeight, 0);
             const groupAmount = group.lines.reduce((s, p) => s + p.totalAmount, 0);
             const brandLabel = group.brand ? ` "${group.brand}"` : '';
-            // Unit price is quoted per the row's size unit (e.g. USD/kg or USD/lb) — headers
-            // must follow it instead of always reading "kg". Net weight (Quantity(n.w))
-            // stays in kg regardless, since it's always entered as kg per carton.
-            const groupUnits = new Set(group.lines.map((p) => p.sizeUnit));
-            const priceUnit = groupUnits.size === 1 ? (groupUnits.has('Lb') ? 'lb' : 'kg') : 'kg/lb';
+            // Size marks are counted per pound on an Lb line, so the Size header follows the
+            // group's unit. Quantity(n.w) and the unit price are always kg, so theirs don't.
+            const sizeUnit = groupSizeUnitLabel(group.lines.map((p) => p.sizeUnit));
             return (
               <div key={group.productType + group.brand + gi} style={{ marginBottom: '4pt' }}>
                 <div style={{ fontWeight: 600, fontSize: '8.5pt', marginBottom: '2pt' }}>
@@ -262,7 +260,7 @@ export function ContractPrint() {
                   </colgroup>
                   <thead>
                     <tr>
-                      <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Size/{priceUnit}</th>
+                      <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Size/{sizeUnit}</th>
                       <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Packing</th>
                       <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Quantity</th>
                       <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Quantity(n.w)</th>
@@ -274,7 +272,7 @@ export function ContractPrint() {
                       <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>{contract.packingStyle || ''}</th>
                       <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>ctns</th>
                       <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>kg</th>
-                      <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>{currency}/{priceUnit}</th>
+                      <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>{currency}/kg</th>
                       <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>{currency}</th>
                     </tr>
                   </thead>

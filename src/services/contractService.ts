@@ -1,6 +1,5 @@
 import { supabase } from '../lib/supabase';
 import type { SaleContract, ProductLine, Signatory } from '../types';
-import { weightForPricing } from '../utils/productTypes';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapProductLine(pl: any): ProductLine {
@@ -8,7 +7,6 @@ function mapProductLine(pl: any): ProductLine {
   const nwt = Number(pl.net_weight_per_carton);
   const price = Number(pl.unit_price);
   const totalWeight = qty * nwt;
-  const weightForPrice = weightForPricing(totalWeight, pl.size_unit);
   return {
     id: pl.id,
     productType: pl.product_type,
@@ -20,7 +18,7 @@ function mapProductLine(pl: any): ProductLine {
     netWeightPerCarton: nwt,
     unitPrice: price,
     totalWeight,
-    totalAmount: weightForPrice * price,
+    totalAmount: totalWeight * price,
   };
 }
 

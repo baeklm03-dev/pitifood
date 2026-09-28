@@ -7,7 +7,7 @@ import { brandService } from '../../services/brandService';
 import { useAuth } from '../../hooks/useAuth';
 import { useResponsive } from '../../hooks/useMediaQuery';
 import { generateContractNo } from '../../utils/contractNumber';
-import { PRODUCT_TYPES, SIZES, LB_PER_KG, weightForPricing } from '../../utils/productTypes';
+import { PRODUCT_TYPES, SIZES, groupSizeUnitLabel } from '../../utils/productTypes';
 import { parsePackingNetWeightKg } from '../../utils/packingWeight';
 import type { Buyer, Brand, SaleContract, ProductLine, Signatory } from '../../types';
 import { Button } from '../../components/UI/Button';
@@ -116,8 +116,7 @@ function computeRow(row: PRow) {
   const nwt = parseFloat(row.netWeightPerCarton) || 0;
   const price = parseFloat(row.unitPrice) || 0;
   const totalWeight = qty * nwt;
-  const weightForPrice = weightForPricing(totalWeight, row.sizeUnit);
-  return { totalWeight, totalAmount: weightForPrice * price };
+  return { totalWeight, totalAmount: totalWeight * price };
 }
 
 function rowToProductLine(row: PRow): ProductLine {
@@ -605,11 +604,9 @@ export function ContractForm() {
 
         {form.buyerId && rowGroups.map((group, gi) => {
           const groupTotals = sumRows(group.rows);
-          // Unit price is quoted per the row's size unit (USD/kg or USD/lb), so the Price
-          // header has to follow it — a hardcoded "/kg" made an Lb group look like the
-          // amount was still priced per kg. Net weight stays kg, as it's entered per carton.
-          const groupUnits = new Set(group.rows.map((r) => r.sizeUnit));
-          const groupPriceUnit = groupUnits.size === 1 ? (groupUnits.has('Lb') ? 'lb' : 'kg') : 'kg/lb';
+          // Size marks are counted per pound on an Lb line, so the Size header follows the
+          // group's unit. Weight and price stay kg either way, so their headers don't.
+          const groupSizeUnit = groupSizeUnitLabel(group.rows.map((r) => r.sizeUnit));
           return (
             <div key={group.key + gi} style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', marginBottom: '14px', overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
@@ -620,7 +617,7 @@ export function ContractForm() {
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '960px', fontSize: '12px' }}>
                   <thead>
                     <tr style={{ background: 'var(--bg)' }}>
-                      {['#', 'Product Type', 'Size', 'Unit', 'Brand', 'Packing', 'Quantity ctns', 'NW/Ctn (kg)', 'Quantity(n.w) kg', `Price ${currencyLabel}/${groupPriceUnit}`, `Amount ${currencyLabel}`, ''].map((h, i) => (
+                      {['#', 'Product Type', `Size/${groupSizeUnit}`, 'Size Unit', 'Brand', 'Packing', 'Quantity ctns', 'NW/Ctn (kg)', 'Quantity(n.w) kg', `Price ${currencyLabel}/kg`, `Amount ${currencyLabel}`, ''].map((h, i) => (
                         <th key={i} style={{ padding: '7px 6px', textAlign: i >= 6 && i <= 10 ? 'right' : 'left', fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', borderBottom: '2px solid var(--border)', whiteSpace: 'nowrap' }}>
                           {h}
                         </th>
@@ -630,11 +627,6 @@ export function ContractForm() {
                   <tbody>
                     {group.rows.map((row, idx) => {
                       const { totalWeight, totalAmount } = computeRow(row);
-                      // On Lb rows the kg net weight is converted before it meets the price;
-                      // spelling that out on hover answers "why isn't this just kg x price?".
-                      const amountHint = row.sizeUnit === 'Lb' && totalAmount > 0
-                        ? `${fmt2(totalWeight)} kg = ${fmt2(totalWeight * LB_PER_KG)} lb x ${currencyLabel} ${row.unitPrice}/lb`
-                        : undefined;
                       return (
                         <tr key={row.id} style={{ borderBottom: '1px solid var(--border)' }}>
                           <td style={{ padding: '6px', fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', width: '28px' }}>{idx + 1}</td>
@@ -715,7 +707,7 @@ export function ContractForm() {
                             <input type="number" min="0" step="0.01" value={row.unitPrice} onChange={(e) => setRow(row.id, { unitPrice: e.target.value })} placeholder="0.00" style={{ ...numInput, textAlign: 'right' }} />
                           </td>
                           <td style={{ padding: '4px 6px', minWidth: '100px' }}>
-                            <div style={computed} title={amountHint}>{totalAmount > 0 ? fmt2(totalAmount) : '—'}</div>
+                            <div style={computed}>{totalAmount > 0 ? fmt2(totalAmount) : '—'}</div>
                           </td>
                           <td style={{ padding: '4px 6px', textAlign: 'center', width: '36px' }}>
                             <button type="button" onClick={() => removeRow(row.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}>

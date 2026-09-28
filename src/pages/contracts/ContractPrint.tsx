@@ -249,7 +249,8 @@ export function ContractPrint() {
             // Unit price is quoted per the row's size unit (e.g. USD/kg or USD/lb) — headers
             // must follow it instead of always reading "kg". Net weight (Quantity(n.w))
             // stays in kg regardless, since it's always entered as kg per carton.
-            const priceUnit = group.lines[0]?.sizeUnit === 'Lb' ? 'lb' : 'kg';
+            const groupUnits = new Set(group.lines.map((p) => p.sizeUnit));
+            const priceUnit = groupUnits.size === 1 ? (groupUnits.has('Lb') ? 'lb' : 'kg') : 'kg/lb';
             return (
               <div key={group.productType + group.brand + gi} style={{ marginBottom: '4pt' }}>
                 <div style={{ fontWeight: 600, fontSize: '8.5pt', marginBottom: '2pt' }}>

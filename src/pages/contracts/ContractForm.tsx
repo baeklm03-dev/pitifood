@@ -527,7 +527,7 @@ export function ContractForm() {
             <div />
           </div>
           <div style={grid3}>
-            <Select label="Shipment — Period" value={form.shipmentPeriod} onChange={(e) => setForm((p) => ({ ...p, shipmentPeriod: e.target.value }))} options={SHIPMENT_PERIOD_OPTIONS} placeholder="— Select —" />
+            <Select label="Shipment — Period" value={form.shipmentPeriod} onChange={(e) => setForm((p) => ({ ...p, shipmentPeriod: e.target.value }))} options={SHIPMENT_PERIOD_OPTIONS} placeholder="— ไม่ระบุช่วง —" />
             <Select label="Shipment — Month" value={form.shipmentMonth} onChange={(e) => setForm((p) => ({ ...p, shipmentMonth: e.target.value }))} options={SHIPMENT_MONTH_OPTIONS} placeholder="— Select —" />
             <Select label="Shipment — Year" value={form.shipmentYear} onChange={(e) => setForm((p) => ({ ...p, shipmentYear: e.target.value }))} options={yearOptions} placeholder="— Select —" />
           </div>

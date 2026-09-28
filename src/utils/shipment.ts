@@ -7,9 +7,12 @@ const MONTH_NAMES = [
 
 const PERIOD_LABEL: Record<ShipmentPeriod, string> = { early: 'Early of', mid: 'Mid of', late: 'End of' };
 
+// Some shipments are agreed only to the month, with no Early/Mid/End window — those print
+// as just "September 2026" rather than falling back to a dash.
 export function formatShipment(period?: ShipmentPeriod, month?: number, year?: number): string {
-  if (!period || !month || !year) return '—';
-  return `${PERIOD_LABEL[period]} ${MONTH_NAMES[month - 1]} ${year}`;
+  if (!month || !year) return '—';
+  const monthYear = `${MONTH_NAMES[month - 1]} ${year}`;
+  return period ? `${PERIOD_LABEL[period]} ${monthYear}` : monthYear;
 }
 
 export const SHIPMENT_PERIOD_OPTIONS = [

@@ -11,7 +11,7 @@ import { ConfirmModal } from '../../components/UI/Modal';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 import { useResponsive } from '../../hooks/useMediaQuery';
 import { defaultLoadingItems, defaultDocumentItems, emptyLoadingRequirement, emptyDocumentRequirement } from '../../utils/poRequirements';
-import { PRODUCT_TYPES, PRODUCT_TYPE_FULL_NAMES } from '../../utils/productTypes';
+import { PRODUCT_TYPES, PRODUCT_TYPE_FULL_NAMES, buyerProductNames } from '../../utils/productTypes';
 
 function uid() {
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
@@ -23,6 +23,8 @@ interface FormErrors {
 }
 
 type BuyerFormData = Omit<Buyer, 'id' | 'createdAt' | 'updatedAt'>;
+
+interface CustomNameRow { id: string; productType: string; fullName: string; }
 
 const INCOTERM_OPTIONS = ['FOB', 'CNF', 'CFR', 'CIF', 'EXW', 'DDP'].map((v) => ({ value: v, label: v }));
 
@@ -42,6 +44,10 @@ export function BuyerForm() {
     productTypeNameOverrides: {},
     hasSubCompanies: false, subCompanies: [],
   });
+  // Product-name rows the user added for product types outside PRODUCT_TYPES (custom types
+  // free-typed on a contract line). Kept as an ordered list rather than in the override map
+  // so an in-progress row with a blank/renamed code doesn't churn map keys on every keystroke.
+  const [customNames, setCustomNames] = useState<CustomNameRow[]>([]);
   const [loadingPage, setLoadingPage] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -53,11 +59,20 @@ export function BuyerForm() {
       buyerService.getById(id).then((existing) => {
         if (!existing) { navigate('/buyers'); return; }
         const { id: _id, createdAt: _c, updatedAt: _u, ...rest } = existing;
+        const savedNames = rest.productTypeNameOverrides ?? {};
+        const standardNames: Record<string, string> = {};
+        const extraNames: CustomNameRow[] = [];
+        for (const [pt, name] of Object.entries(savedNames)) {
+          if (PRODUCT_TYPES.includes(pt)) standardNames[pt] = name;
+          else extraNames.push({ id: uid(), productType: pt, fullName: name });
+        }
         setForm({
           ...rest,
+          productTypeNameOverrides: standardNames,
           loadingRequirement: rest.loadingRequirement ?? emptyLoadingRequirement(),
           documentRequirement: rest.documentRequirement ?? emptyDocumentRequirement(),
         });
+        setCustomNames(extraNames);
         setLoadingPage(false);
       });
     }
@@ -79,6 +94,18 @@ export function BuyerForm() {
     });
   };
 
+  const addCustomName = () => {
+    setCustomNames((prev) => [...prev, { id: uid(), productType: '', fullName: '' }]);
+  };
+
+  const updateCustomName = (rowId: string, field: 'productType' | 'fullName', value: string) => {
+    setCustomNames((prev) => prev.map((r) => (r.id === rowId ? { ...r, [field]: value } : r)));
+  };
+
+  const removeCustomName = (rowId: string) => {
+    setCustomNames((prev) => prev.filter((r) => r.id !== rowId));
+  };
+
   const validate = (): boolean => {
     const newErrors: FormErrors = {};
     if (!form.code.trim()) newErrors.code = 'Buyer code is required';
@@ -93,7 +120,16 @@ export function BuyerForm() {
     setSaving(true);
     setFormError(null);
     try {
-      const data: BuyerFormData = { ...form, code: form.code.toUpperCase() };
+      const extraNames: Record<string, string> = {};
+      for (const row of customNames) {
+        const pt = row.productType.trim();
+        if (pt && row.fullName.trim()) extraNames[pt] = row.fullName.trim();
+      }
+      const data: BuyerFormData = {
+        ...form,
+        code: form.code.toUpperCase(),
+        productTypeNameOverrides: { ...(form.productTypeNameOverrides ?? {}), ...extraNames },
+      };
       const actor = user ? { id: user.id, name: user.fullName } : undefined;
       if (isEdit && id) {
         await buyerService.update(id, data, actor);
@@ -125,6 +161,10 @@ export function BuyerForm() {
   const removeSub = (subId: string) => {
     setForm((prev) => ({ ...prev, subCompanies: prev.subCompanies.filter((s) => s.id !== subId) }));
   };
+
+  // Built-in names for this buyer code show as the field placeholder, so the user sees what
+  // would actually print before deciding whether to override it.
+  const builtInNames = buyerProductNames(form.code);
 
   const cardStyle: React.CSSProperties = {
     background: 'var(--surface)', border: '1px solid var(--border)',
@@ -270,10 +310,43 @@ export function BuyerForm() {
                 <Input
                   value={form.productTypeNameOverrides?.[pt] ?? ''}
                   onChange={(e) => setProductTypeNameOverride(pt, e.target.value)}
-                  placeholder={PRODUCT_TYPE_FULL_NAMES[pt]}
+                  placeholder={builtInNames[pt] ?? PRODUCT_TYPE_FULL_NAMES[pt]}
                 />
               </div>
             ))}
+
+            {customNames.map((row) => (
+              <div key={row.id} style={{ ...grid2, alignItems: 'start' }}>
+                <Input
+                  value={row.productType}
+                  onChange={(e) => updateCustomName(row.id, 'productType', e.target.value.toUpperCase())}
+                  placeholder="รหัสสินค้า เช่น CHOSO EZP"
+                />
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <div style={{ flex: 1 }}>
+                    <Input
+                      value={row.fullName}
+                      onChange={(e) => updateCustomName(row.id, 'fullName', e.target.value)}
+                      placeholder="ชื่อเต็มที่พิมพ์ในเอกสาร"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeCustomName(row.id)}
+                    title="ลบรายการนี้"
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--danger)', display: 'flex', alignItems: 'center', padding: '6px' }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: '12px' }}>
+            <Button type="button" variant="ghost" onClick={addCustomName}>
+              <Plus size={14} /> เพิ่มชื่อสินค้าเอง
+            </Button>
           </div>
         </div>
 

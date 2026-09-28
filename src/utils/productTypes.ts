@@ -36,6 +36,29 @@ export const PRODUCT_TYPE_FULL_NAMES: Record<string, string> = {
   'RAW VANNAMEI PD': 'Frozen Raw Vannamei Shrimp Peeled Deveined Tail Off (Raw PD)',
 };
 
+// Built-in per-buyer commodity names, keyed by buyer code then product type. These sit
+// between PRODUCT_TYPE_FULL_NAMES and the buyer's own saved overrides, so a buyer whose
+// naming never changes needs no data entry, while the Buyer form can still override it.
+export const BUYER_PRODUCT_TYPE_FULL_NAMES: Record<string, Record<string, string>> = {
+  // AU01 SEABOSS — "Whole Cooked ... Prawn" instead of "Cooked ... Shrimp Head On Shell On".
+  AU01: {
+    'CHOSO A GRADE': 'Frozen Whole Cooked Vannamei Prawn " A Grade "',
+    'CHOSO B GRADE': 'Frozen Whole Cooked Vannamei Prawn " B Grade "',
+  },
+};
+
+// The effective name map for one buyer: built-in buyer names, with the buyer's own saved
+// overrides (Buyer.productTypeNameOverrides) taking precedence. Print pages pass the
+// result to getProductFullName instead of the raw override map.
+export function buyerProductNames(
+  buyerCode?: string,
+  overrides?: Record<string, string>
+): Record<string, string> {
+  const builtIn = buyerCode ? BUYER_PRODUCT_TYPE_FULL_NAMES[buyerCode.toUpperCase()] : undefined;
+  if (!builtIn) return overrides ?? {};
+  return { ...builtIn, ...(overrides ?? {}) };
+}
+
 // Resolves a product type's printed commodity name: buyer override > default > the raw
 // code itself (for custom/free-typed product types with no entry in either map).
 export function getProductFullName(productType: string, overrides?: Record<string, string>): string {

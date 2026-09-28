@@ -9,7 +9,7 @@ import { contractService } from '../../services/contractService';
 import type { ProductionOrder, POLine, Buyer } from '../../types';
 import { formatDateTH } from '../../utils/thaiDate';
 import { buildCombinedPackingBlock, buildCombinedSpecBlock, formatRequirementLines, type CombinedPackingBlock, type CombinedSpecBlock } from '../../utils/poRequirements';
-import { getProductFullName } from '../../utils/productTypes';
+import { buyerProductNames, getProductFullName } from '../../utils/productTypes';
 import { Button } from '../../components/UI/Button';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
 import { useResponsive } from '../../hooks/useMediaQuery';
@@ -237,7 +237,7 @@ export function POPrint() {
   );
   const totals = sumLines(po.lines);
 
-  const overrides = buyer?.productTypeNameOverrides;
+  const overrides = buyerProductNames(buyer?.code, buyer?.productTypeNameOverrides);
   const groups = groupLines(po.lines);
   const spanGroups = computeLineSpanGroups(po.lines, overrides, frozenStyle);
   const multiBlock = spanGroups.filter(Boolean).length > 1;

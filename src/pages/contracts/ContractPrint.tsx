@@ -7,7 +7,7 @@ import { contractService } from '../../services/contractService';
 import { buyerService } from '../../services/buyerService';
 import type { Buyer, ProductLine, SaleContract } from '../../types';
 import { formatShipment } from '../../utils/shipment';
-import { getProductFullName } from '../../utils/productTypes';
+import { buyerProductNames, getProductFullName } from '../../utils/productTypes';
 import { baseContractNo } from '../../utils/contractNumber';
 import { Button } from '../../components/UI/Button';
 import { LoadingSpinner } from '../../components/UI/LoadingSpinner';
@@ -96,6 +96,7 @@ export function ContractPrint() {
   const subCompany = contract.subCompanyId
     ? buyer?.subCompanies.find((s) => s.id === contract.subCompanyId)
     : undefined;
+  const productNames = buyerProductNames(buyer?.code, buyer?.productTypeNameOverrides);
   const buyerDisplay = {
     name: subCompany?.name || contract.subCompanyName || contract.buyerName,
     address: subCompany?.address || buyer?.address,
@@ -252,7 +253,7 @@ export function ContractPrint() {
             return (
               <div key={group.productType + group.brand + gi} style={{ marginBottom: '4pt' }}>
                 <div style={{ fontWeight: 600, fontSize: '8.5pt', marginBottom: '2pt' }}>
-                  {gi + 1}.&nbsp;&nbsp;{getProductFullName(group.productType, buyer?.productTypeNameOverrides)}{brandLabel}
+                  {gi + 1}.&nbsp;&nbsp;{getProductFullName(group.productType, productNames)}{brandLabel}
                 </div>
                 <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
                   <colgroup>

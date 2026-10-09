@@ -157,6 +157,7 @@ function productLineToRow(pl: ProductLine, brands: Brand[]): PRow {
 interface FormState {
   buyerId: string;
   subCompanyId: string;
+  buyerPoNo: string;
   offerDate: string;
   shipmentPeriod: string;
   shipmentMonth: string;
@@ -215,7 +216,7 @@ export function ContractForm() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const [form, setForm] = useState<FormState>({
-    buyerId: '', subCompanyId: '', offerDate: TODAY,
+    buyerId: '', subCompanyId: '', buyerPoNo: '', offerDate: TODAY,
     shipmentPeriod: '', shipmentMonth: '', shipmentYear: '',
     portOfLoading: '', portOfDischarge: '', incoterm: '',
     paymentTerms: '', containerQty: '',
@@ -246,6 +247,7 @@ export function ContractForm() {
         setForm({
           buyerId: existing.buyerId,
           subCompanyId: existing.subCompanyId ?? '',
+          buyerPoNo: existing.buyerPoNo ?? '',
           offerDate: existing.offerDate,
           shipmentPeriod: existing.shipmentPeriod ?? '',
           shipmentMonth: existing.shipmentMonth ? String(existing.shipmentMonth) : '',
@@ -402,6 +404,7 @@ export function ContractForm() {
         buyerName: buyer?.companyName ?? '',
         subCompanyId: form.subCompanyId || undefined,
         subCompanyName: sub?.name || undefined,
+        buyerPoNo: form.buyerPoNo.trim() || undefined,
         offerDate: form.offerDate,
         shipmentPeriod: (form.shipmentPeriod || undefined) as ShipmentPeriod | undefined,
         shipmentMonth: form.shipmentMonth ? parseInt(form.shipmentMonth, 10) : undefined,
@@ -523,7 +526,7 @@ export function ContractForm() {
           )}
           <div style={grid2}>
             <Input label="Offer Date *" type="date" value={form.offerDate} onChange={(e) => setForm((p) => ({ ...p, offerDate: e.target.value }))} error={errors.offerDate} />
-            <div />
+            <Input label="P/O No." value={form.buyerPoNo} onChange={(e) => setForm((p) => ({ ...p, buyerPoNo: e.target.value }))} placeholder="e.g. SUI-1037" />
           </div>
           <div style={grid3}>
             <Select label="Shipment — Period" value={form.shipmentPeriod} onChange={(e) => setForm((p) => ({ ...p, shipmentPeriod: e.target.value }))} options={SHIPMENT_PERIOD_OPTIONS} placeholder="— ไม่ระบุช่วง —" />

@@ -19,13 +19,15 @@ const fmtDateLong = (d?: string) =>
 const fmtNum = (n: number, decimals = 2) =>
   n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
-const SELLER = {
-  name: 'PITI FOODS CO.,LTD.',
-  addressLines: ['33/3 MOO.5  WAT KHANUN, SINGHANAKHON,', 'SONGKHLA 90330 THAILAND'],
-  tel: '+66 74 536213',
-  fax: '+66 74 536294',
-  email: 'INFO@PITIFOODS.COM',
-};
+// Fixed, line-for-line as it must appear on the printed contract.
+const SELLER_LINES = [
+  'PITI FOODS CO.,LTD.',
+  '33/3 MOO.5 WAT KHANUN, SINGHANAKHON',
+  'SONGKHLA 90330 THAILAND',
+  'TEL: +66 74 536213',
+  'FAX: +66 74 536294',
+  'E-MAIL : INFO@PITIFOODS.COM',
+];
 
 const BANK = {
   name: 'KASIKORNBANK PUBLIC COMPANY LIMITED',
@@ -103,6 +105,11 @@ export function ContractPrint() {
     phone: subCompany?.phone || buyer?.phone,
     email: subCompany?.email || buyer?.email,
   };
+  // The address is a free-text field — keep whatever line breaks were typed into it.
+  const buyerAddressLines = (buyerDisplay.address ?? '')
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
 
   const groups = groupByProductType(contract.productLines);
 
@@ -226,25 +233,29 @@ export function ContractPrint() {
             <table style={{ borderCollapse: 'collapse', width: '100%', marginBottom: '10pt' }}>
               <tbody>
                 <tr>
-                  <td style={{ padding: '1.5pt 0', fontSize: '8.5pt', verticalAlign: 'top', width: '78pt' }}>Reference No.</td>
-                  <td style={{ padding: '1.5pt 0', fontSize: '8.5pt', fontWeight: 600 }} colSpan={3}>{baseContractNo(contract.contractNo)}</td>
+                  <td style={{ padding: '1.5pt 0', fontSize: '8.5pt', fontWeight: 700, verticalAlign: 'top', width: '78pt' }}>Reference No.</td>
+                  <td style={{ padding: '1.5pt 0', fontSize: '8.5pt', fontWeight: 700 }} colSpan={3}>{baseContractNo(contract.contractNo)}</td>
                 </tr>
+                {/* P/O No. sits on the Date row, and Buyer on the Seller row. The whole
+                    P/O line lives in the buyer's content column, so it starts where the
+                    buyer's own details start rather than in the label column. */}
                 <tr>
-                  <td style={{ padding: '1.5pt 0', fontSize: '8.5pt', verticalAlign: 'top' }}>Date :</td>
-                  <td style={{ padding: '1.5pt 0', fontSize: '8.5pt' }} colSpan={3}>{fmtDateLong(contract.offerDate)}</td>
-                </tr>
-                <tr>
-                  <td style={{ padding: '1.5pt 0', fontSize: '8.5pt', verticalAlign: 'top', width: '78pt' }}>Seller :</td>
-                  <td style={{ padding: '1.5pt 20pt 1.5pt 0', fontSize: '8.5pt', lineHeight: 1.5, verticalAlign: 'top' }}>
-                    {SELLER.name}<br />
-                    {SELLER.addressLines.map((l) => <React.Fragment key={l}>{l}<br /></React.Fragment>)}
-                    TEL: {SELLER.tel}&nbsp;&nbsp;FAX: {SELLER.fax}<br />
-                    E-MAIL : {SELLER.email}
+                  <td style={{ padding: '1.5pt 0', fontSize: '8.5pt', fontWeight: 700, verticalAlign: 'top' }}>Date :</td>
+                  <td style={{ padding: '1.5pt 20pt 1.5pt 0', fontSize: '8.5pt' }}>{fmtDateLong(contract.offerDate)}</td>
+                  <td style={{ padding: '1.5pt 0', fontSize: '8.5pt', verticalAlign: 'top', width: '48pt' }} />
+                  <td style={{ padding: '1.5pt 0', fontSize: '8.5pt', verticalAlign: 'top' }}>
+                    {contract.buyerPoNo && <>P/O No. : {contract.buyerPoNo}</>}
                   </td>
-                  <td style={{ padding: '1.5pt 0', fontSize: '8.5pt', verticalAlign: 'top', width: '48pt' }}>Buyer :</td>
+                </tr>
+                <tr>
+                  <td style={{ padding: '1.5pt 0', fontSize: '8.5pt', fontWeight: 700, verticalAlign: 'top', width: '78pt' }}>Seller :</td>
+                  <td style={{ padding: '1.5pt 20pt 1.5pt 0', fontSize: '8.5pt', lineHeight: 1.5, verticalAlign: 'top' }}>
+                    {SELLER_LINES.map((l) => <React.Fragment key={l}>{l}<br /></React.Fragment>)}
+                  </td>
+                  <td style={{ padding: '1.5pt 0', fontSize: '8.5pt', fontWeight: 700, verticalAlign: 'top', width: '48pt' }}>Buyer :</td>
                   <td style={{ padding: '1.5pt 0', fontSize: '8.5pt', lineHeight: 1.5, verticalAlign: 'top' }}>
-                    <span style={{ fontWeight: 700 }}>{buyerDisplay.name}</span><br />
-                    {buyerDisplay.address && <>{buyerDisplay.address}<br /></>}
+                    {buyerDisplay.name}<br />
+                    {buyerAddressLines.map((l, i) => <React.Fragment key={`${l}-${i}`}>{l}<br /></React.Fragment>)}
                     {buyerDisplay.phone && <>TEL: {buyerDisplay.phone}<br /></>}
                     {buyerDisplay.email && <>E-MAIL : {buyerDisplay.email}</>}
                   </td>

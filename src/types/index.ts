@@ -166,6 +166,7 @@ export interface SaleContract {
   buyerName: string;
   subCompanyId?: string;
   subCompanyName?: string;
+  buyerPoNo?: string;          // the buyer's own purchase-order no., printed above their address
   offerDate: string;
   shipmentPeriod?: ShipmentPeriod;
   shipmentMonth?: number;

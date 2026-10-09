@@ -214,7 +214,7 @@ export function BuyerForm() {
               <Input label="Country" value={form.country ?? ''} onChange={(e) => setField('country', e.target.value)} placeholder="e.g. China" />
               <Input label="Contact Person" value={form.contactPerson ?? ''} onChange={(e) => setField('contactPerson', e.target.value)} placeholder="e.g. Mr. Wang" />
             </div>
-            <Textarea label="Address" value={form.address ?? ''} onChange={(e) => setField('address', e.target.value)} placeholder="Full business address" />
+            <Textarea label="Address" value={form.address ?? ''} onChange={(e) => setField('address', e.target.value)} placeholder="Full business address — press Enter for a new line" />
             <div style={grid2}>
               <Input label="Phone" value={form.phone ?? ''} onChange={(e) => setField('phone', e.target.value)} placeholder="+86 xxx xxxx xxxx" />
               <Input label="Email" type="email" value={form.email ?? ''} onChange={(e) => setField('email', e.target.value)} placeholder="contact@company.com" />
@@ -247,10 +247,10 @@ export function BuyerForm() {
                       <Input label="Contact Person" value={sub.contactPerson ?? ''} onChange={(e) => updateSub(sub.id, 'contactPerson', e.target.value)} placeholder="Contact name" />
                       <Input label="Phone" value={sub.phone ?? ''} onChange={(e) => updateSub(sub.id, 'phone', e.target.value)} placeholder="Phone number" />
                     </div>
-                    <div style={grid2}>
-                      <Input label="Email" value={sub.email ?? ''} onChange={(e) => updateSub(sub.id, 'email', e.target.value)} placeholder="Email address" />
-                      <Input label="Address" value={sub.address ?? ''} onChange={(e) => updateSub(sub.id, 'address', e.target.value)} placeholder="Address" />
-                    </div>
+                    <Input label="Email" value={sub.email ?? ''} onChange={(e) => updateSub(sub.id, 'email', e.target.value)} placeholder="Email address" />
+                    {/* A textarea, like the parent company's: the contract print keeps the
+                        line breaks typed here. */}
+                    <Textarea label="Address" rows={3} value={sub.address ?? ''} onChange={(e) => updateSub(sub.id, 'address', e.target.value)} placeholder="Full business address — press Enter for a new line" />
                   </div>
                 </div>
               ))}

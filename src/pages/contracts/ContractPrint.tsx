@@ -288,18 +288,18 @@ export function ContractPrint() {
                     <tr>
                       <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Size/{sizeUnit}</th>
                       <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Packing</th>
-                      <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Quantity</th>
-                      <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Quantity(n.w)</th>
-                      <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Price</th>
-                      <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Amount</th>
+                      <th style={cell({ textAlign: 'right', fontWeight: 700, borderBottom: 'none' })}>Quantity</th>
+                      <th style={cell({ textAlign: 'right', fontWeight: 700, borderBottom: 'none' })}>Quantity(n.w)</th>
+                      <th style={cell({ textAlign: 'right', fontWeight: 700, borderBottom: 'none' })}>Price</th>
+                      <th style={cell({ textAlign: 'right', fontWeight: 700, borderBottom: 'none' })}>Amount</th>
                     </tr>
                     <tr>
                       <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}></th>
                       <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>{contract.packingStyle || ''}</th>
-                      <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>ctns</th>
-                      <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>kg</th>
-                      <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>{currency}/kg</th>
-                      <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>{currency}</th>
+                      <th style={cell({ textAlign: 'right', fontWeight: 600, borderTop: 'none' })}>ctns</th>
+                      <th style={cell({ textAlign: 'right', fontWeight: 600, borderTop: 'none' })}>kg</th>
+                      <th style={cell({ textAlign: 'right', fontWeight: 600, borderTop: 'none' })}>{currency}/kg</th>
+                      <th style={cell({ textAlign: 'right', fontWeight: 600, borderTop: 'none' })}>{currency}</th>
                     </tr>
                   </thead>
                   <tbody>

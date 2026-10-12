@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FileDown, ChevronLeft, Edit2 } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import { toCanvas } from 'html-to-image';
 import jsPDF from 'jspdf';
 import { poService } from '../../services/poService';
 import { buyerService } from '../../services/buyerService';
@@ -250,7 +250,18 @@ export function POPrint() {
     if (!pageRef.current) return;
     setExporting(true);
     try {
-      const canvas = await html2canvas(pageRef.current, { scale: 2, useCORS: true });
+      const node = pageRef.current;
+      // Same as the sale contract: let the browser lay the page out rather than let the
+      // rasteriser estimate text widths, and pin the clone's margin so `margin: 0 auto`
+      // does not push it off the canvas.
+      const canvas = await toCanvas(node, {
+        pixelRatio: 2,
+        backgroundColor: '#fff',
+        cacheBust: true,
+        width: node.offsetWidth,
+        height: node.offsetHeight,
+        style: { margin: '0', boxShadow: 'none' },
+      });
       const pageWidthMM = 210;
       const pageHeightMM = 297;
 

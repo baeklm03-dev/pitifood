@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FileDown, ChevronLeft, Edit2, Download } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import { toCanvas } from 'html-to-image';
 import jsPDF from 'jspdf';
 import { contractService } from '../../services/contractService';
 import { buyerService } from '../../services/buyerService';
@@ -140,7 +140,22 @@ export function ContractPrint() {
     if (!pageRef.current) return;
     setExporting(true);
     try {
-      const canvas = await html2canvas(pageRef.current, { scale: 2, useCORS: true });
+      // html-to-image hands the node to the browser inside an <svg><foreignObject>, so the
+      // browser lays the text out itself. html2canvas estimated text widths instead, which
+      // left every right-aligned figure a few pixels off its column, each row by a different
+      // amount, and drew the collapsed table borders twice over.
+      const node = pageRef.current;
+      // The clone is laid out in a box as wide as the window, where the page's own
+      // `margin: 0 auto` resolves to a real left margin and pushes it off the canvas.
+      // Pinning the margin to 0 and fixing the size keeps the capture on the page itself.
+      const canvas = await toCanvas(node, {
+        pixelRatio: 2,
+        backgroundColor: '#fff',
+        cacheBust: true,
+        width: node.offsetWidth,
+        height: node.offsetHeight,
+        style: { margin: '0', boxShadow: 'none' },
+      });
       const pageWidthMM = 210;
       const pageHeightMM = 297;
 
@@ -288,18 +303,18 @@ export function ContractPrint() {
                     <tr>
                       <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Size/{sizeUnit}</th>
                       <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Packing</th>
-                      <th style={cell({ textAlign: 'right', fontWeight: 700, borderBottom: 'none' })}>Quantity</th>
-                      <th style={cell({ textAlign: 'right', fontWeight: 700, borderBottom: 'none' })}>Quantity(n.w)</th>
-                      <th style={cell({ textAlign: 'right', fontWeight: 700, borderBottom: 'none' })}>Price</th>
-                      <th style={cell({ textAlign: 'right', fontWeight: 700, borderBottom: 'none' })}>Amount</th>
+                      <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Quantity</th>
+                      <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Quantity(n.w)</th>
+                      <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Price</th>
+                      <th style={cell({ textAlign: 'center', fontWeight: 700, borderBottom: 'none' })}>Amount</th>
                     </tr>
                     <tr>
                       <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}></th>
                       <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>{contract.packingStyle || ''}</th>
-                      <th style={cell({ textAlign: 'right', fontWeight: 600, borderTop: 'none' })}>ctns</th>
-                      <th style={cell({ textAlign: 'right', fontWeight: 600, borderTop: 'none' })}>kg</th>
-                      <th style={cell({ textAlign: 'right', fontWeight: 600, borderTop: 'none' })}>{currency}/kg</th>
-                      <th style={cell({ textAlign: 'right', fontWeight: 600, borderTop: 'none' })}>{currency}</th>
+                      <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>ctns</th>
+                      <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>kg</th>
+                      <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>{currency}/kg</th>
+                      <th style={cell({ textAlign: 'center', fontWeight: 600, borderTop: 'none' })}>{currency}</th>
                     </tr>
                   </thead>
                   <tbody>

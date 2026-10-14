@@ -178,6 +178,7 @@ export interface SaleContract {
   containerQty?: number;
   containerType?: string;
   packingStyle?: string;
+  grossWeight?: string;        // free text for now, typed in by hand; printed under Packing
   currency?: string;
   productLines: ProductLine[];
   signatories: Signatory[];

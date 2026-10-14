@@ -170,6 +170,7 @@ interface FormState {
   containerType: string;       // selected, or OTHER sentinel
   customContainerType: string; // used when containerType === OTHER
   packingStyle: string;        // selected, or OTHER sentinel
+  grossWeight: string;
   customPackingStyle: string;  // used when packingStyle === OTHER
   currency: string;         // selected, or OTHER sentinel
   customCurrency: string;   // used when currency === OTHER
@@ -222,6 +223,7 @@ export function ContractForm() {
     paymentTerms: '', containerQty: '',
     containerType: '', customContainerType: '',
     packingStyle: '', customPackingStyle: '',
+    grossWeight: '',
     currency: DEFAULT_CURRENCY, customCurrency: '',
     rows: [], signatories: defaultSignatories(),
   });
@@ -260,6 +262,7 @@ export function ContractForm() {
           containerType: ctIsOther ? OTHER : ct,
           customContainerType: ctIsOther ? ct : '',
           packingStyle: psIsOther ? OTHER : ps,
+          grossWeight: existing.grossWeight ?? '',
           customPackingStyle: psIsOther ? ps : '',
           currency: curIsOther ? OTHER : cur,
           customCurrency: curIsOther ? cur : '',
@@ -416,6 +419,7 @@ export function ContractForm() {
         containerQty: form.containerQty ? parseInt(form.containerQty, 10) : undefined,
         containerType: containerType || undefined,
         packingStyle: packingStyle || undefined,
+        grossWeight: form.grossWeight.trim() || undefined,
         currency: currency || DEFAULT_CURRENCY,
         productLines: form.rows.map(rowToProductLine),
         signatories: form.signatories,
@@ -570,6 +574,7 @@ export function ContractForm() {
                 </div>
               )}
             </div>
+            <Input label="Gross Weight" value={form.grossWeight} onChange={(e) => setForm((p) => ({ ...p, grossWeight: e.target.value }))} placeholder="e.g. 14,500g" />
           </div>
         </div>
       </div>

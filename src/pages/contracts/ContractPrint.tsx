@@ -366,7 +366,13 @@ export function ContractPrint() {
           <table style={{ borderCollapse: 'collapse', marginBottom: '10pt' }}>
             <tbody>
               {[
-                ['Packing', uniquePacking.length ? `${contract.packingStyle ? contract.packingStyle + ' ' : ''}${uniquePacking.join(', ')}` : '—'],
+                // The gross weight is typed in by hand and rides on the end of the packing
+                // line. The packing figure is only labelled as the net weight once a gross
+                // weight sits beside it to tell it apart from.
+                ['Packing', uniquePacking.length
+                  ? `${contract.packingStyle ? contract.packingStyle + ' ' : ''}${uniquePacking.join(', ')}`
+                    + (contract.grossWeight ? ` (Net Weight), ${contract.grossWeight} (Gross Weight)` : '')
+                  : '—'],
                 ['Total Quantity', `${containerLabel}   ( ${fmtNum(grandQty, 0)} Ctns Or ${fmtNum(grandWeight, 0)} Kgs)`],
                 ['Total Amount', `${currency} ${fmtNum(grandAmount)}`],
                 ['Shipment', formatShipment(contract.shipmentPeriod, contract.shipmentMonth, contract.shipmentYear)],
